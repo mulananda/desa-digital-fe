@@ -1,0 +1,21 @@
+src/
+├── api/
+│   └── axios.js   
+├── config/
+│   ├── messages.config.js      
+│   ├── notivue.config.js        
+│   └── routes.config.js         # Route names & redirect logic
+├── services/
+│   ├── auth.service.js          
+│   ├── token.service.js         
+│   ├── notification.service.js  
+│   └── errorHandler.service.js  
+├── stores/
+│   └── auth.js                                
+├── utils/
+|   ├── helpers.js   
+│   └── constant.js                                
+└── router/
+    └── index.js                 
+
+    
