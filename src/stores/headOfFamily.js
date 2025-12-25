@@ -15,7 +15,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
     loading: false,
     error: null,
     success: null,
-    headOfFamilyData: null,
   }),
 
   actions: {
@@ -59,16 +58,12 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
     },
 
     async fetchHeadOfFamily(id) {
-      if (!id) return;
       this.loading = true;
-      this.error = null;
 
       try {
         const response = await axiosInstance.get(`/head-of-family/${id}`);
-
-        this.headOfFamilyData = response.data.data;
+        return response.data.data;
       } catch (error) {
-        this.headOfFamilyData = null; // ✅ prevent stale data
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });

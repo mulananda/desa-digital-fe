@@ -9,8 +9,7 @@ import { debounce } from "lodash";
 
 const headOfFamilyStore = useHeadOfFamilyStore();
 
-const { headOfFamilies, meta, loading, error, success } =
-  storeToRefs(headOfFamilyStore);
+const { headOfFamilies, meta, loading, error } = storeToRefs(headOfFamilyStore);
 
 const { fetchHeadOfFamiliesPaginated } = headOfFamilyStore;
 
