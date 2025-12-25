@@ -3,6 +3,10 @@
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { ROUTE_NAMES } from "@/config/routes.config";
+import { notificationService } from "@/services/notification.service";
+import { SUCCESS_MESSAGES } from "@/config/messages.config";
 
 import Input from "@/components/ui/Input.vue";
 import Button from "@/components/ui/Button.vue";
@@ -12,6 +16,7 @@ import IconProfileBlack from "@/assets/images/icons/user-black.svg";
 import IconKeySecondaryGreen from "@/assets/images/icons/key-secondary-green.svg";
 import IconKeyBlack from "@/assets/images/icons/key-black.svg";
 
+const router = useRouter();
 const authStore = useAuthStore();
 
 const { loading, loginError } = storeToRefs(authStore);
@@ -27,21 +32,26 @@ const isFormValid = computed(
   () => !!form.value.email && !!form.value.password && !!form.value.role
 );
 
-const handleSubmit = async () => {
-  if (!isFormValid.value) return;
-
-  const credentials = {
-    email: form.value.email.trim().toLowerCase(),
-    password: form.value.password,
-    role: form.value.role,
-  };
+async function handleSubmit() {
+  if (!isFormValid.value || loading.value) return;
 
   try {
-    await login(credentials);
+    await login({
+      email: form.value.email.trim().toLowerCase(),
+      password: form.value.password,
+      role: form.value.role,
+    });
+
+    notificationService.success(
+      SUCCESS_MESSAGES.LOGIN.message,
+      SUCCESS_MESSAGES.LOGIN.title
+    );
+
+    await router.push({ name: ROUTE_NAMES.DASHBOARD });
   } catch {
     form.value.password = "";
   }
-};
+}
 </script>
 
 <template>
