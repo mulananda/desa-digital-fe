@@ -258,7 +258,7 @@ onMounted(fetchData);
           <div
             class="card flex flex-col rounded-2xl border border-desa-background p-4 gap-6"
             v-for="familyMember in headOfFamily.family_members"
-            :key="index"
+            :key="familyMember.id"
           >
             <div class="flex items-center gap-4">
               <div
@@ -286,7 +286,7 @@ onMounted(fetchData);
                 </p>
               </div>
               <p class="font-medium leading-5 text-nowrap">
-                {{ calculateAge(familyMember.date_of_birth) }}
+                {{ calculateAge(familyMember.date_of_birth) }} Tahun
               </p>
             </div>
             <hr class="border-desa-background" />
