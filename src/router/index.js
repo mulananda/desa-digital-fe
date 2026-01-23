@@ -31,6 +31,7 @@ const router = createRouter({
             requiresAuth: true,
             // permission sesuai permission seeder di API backend
             permission: "dashboard-menu",
+            // aktif sidebar
             sidebarKey: SIDEBAR_KEYS.DASHBOARD,
           },
         },
