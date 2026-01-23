@@ -14,6 +14,7 @@ import Dashboard from "@/views/Dashboard.vue";
 import Login from "@/views/Login.vue";
 import HeadOfFamilies from "@/views/head-of-family/HeadOfFamilies.vue";
 import HeadOfFamily from "@/views/head-of-family/HeadOfFamily.vue";
+import HeadOfFamilyCreate from "@/views/head-of-family/HeadOfFamilyCreate.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,7 @@ const router = createRouter({
           component: Dashboard,
           meta: {
             requiresAuth: true,
+            // permission sesuai permission seeder di API backend
             permission: "dashboard-menu",
             sidebarKey: SIDEBAR_KEYS.DASHBOARD,
           },
@@ -49,6 +51,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             permission: "head-of-family-list",
+            sidebarKey: SIDEBAR_KEYS.HEAD_OF_FAMILY,
+          },
+        },
+        {
+          path: ROUTE_PATHS.CREATE_HEAD_OF_FAMILY,
+          name: ROUTE_NAMES.CREATE_HEAD_OF_FAMILY,
+          component: HeadOfFamilyCreate,
+          meta: {
+            requiresAuth: true,
+            permission: "head-of-family-create",
             sidebarKey: SIDEBAR_KEYS.HEAD_OF_FAMILY,
           },
         },
@@ -74,69 +86,56 @@ const router = createRouter({
   ],
 });
 
-// Navigation Guard
-router.beforeEach(async (to, from, next) => {
+/**
+ * ============================
+ * NAVIGATION GUARD
+ * ============================
+ */
+router.beforeEach(async (to, from) => {
   const authStore = useAuthStore();
 
-  logger.info(`Navigating: ${from.name} → ${to.name}`);
-
-  // Handle protected routes
-  if (to.meta.requiresAuth) {
-    return await handleProtectedRoute(to, authStore, next);
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (to.meta.requiresUnauth && authStore.isAuthenticated) {
-    logger.info("Already authenticated, redirecting to dashboard");
-    return next({ name: ROUTE_NAMES.DASHBOARD });
-  }
-
-  next();
-});
-
-/**
- * Handle protected route access
- */
-async function handleProtectedRoute(to, authStore, next) {
-  // Check if user has token
+  // 1. Initialize token if not exists (sync, non-blocking)
   if (!authStore.token) {
-    logger.warn("No token, redirecting to login");
-    return next({ name: ROUTE_NAMES.LOGIN });
+    authStore.initializeAuth();
   }
 
-  try {
-    // Fetch user if not already loaded
-    if (!authStore.user) {
-      logger.info("Fetching user data...");
-      await authStore.fetchUser();
-    }
+  logger.info(`Navigating: ${from.name ?? "INIT"} → ${to.name}`);
 
-    // Verify user data exists
-    if (!authStore.user) {
-      logger.error("User fetch failed");
-      return next({ name: ROUTE_NAMES.LOGIN });
-    }
-
-    // Check permission if required
-    if (!hasRequiredPermission(to, authStore)) {
-      logger.warn(`Permission denied: ${to.meta.permission}`);
-      return next({ name: ROUTE_NAMES.ERROR_403 });
-    }
-
-    logger.success("Auth check passed");
-    next();
-  } catch (error) {
-    logger.error("Auth check failed", error);
-    next({ name: ROUTE_NAMES.LOGIN });
+  // 2. Redirect authenticated users from auth pages
+  if (to.meta.requiresUnauth && authStore.isAuthenticated) {
+    logger.info("Already authenticated → redirect to dashboard");
+    return { name: ROUTE_NAMES.DASHBOARD };
   }
-}
 
-/**
- * Check if user has required permission
- */
-function hasRequiredPermission(route, authStore) {
-  if (!route.meta.permission) return true;
-  return authStore.hasPermission(route.meta.permission);
-}
+  // 3. Handle protected routes
+  if (to.meta.requiresAuth) {
+    // No token → redirect to login
+    if (!authStore.token) {
+      logger.warn("No token → redirect to login");
+      return { name: ROUTE_NAMES.LOGIN };
+    }
+
+    // Lazy fetch user data if not exists
+    if (!authStore.user) {
+      try {
+        logger.info("Fetching user data...");
+        await authStore.fetchUser();
+      } catch (error) {
+        logger.error("Fetch user failed → login", error);
+        return { name: ROUTE_NAMES.LOGIN };
+      }
+    }
+
+    // Check permission
+    const requiredPermission = to.meta.permission;
+    if (requiredPermission && !authStore.hasPermission(requiredPermission)) {
+      logger.warn(`Permission denied: ${requiredPermission}`);
+      return { name: ROUTE_NAMES.ERROR_403 };
+    }
+  }
+
+  // 4. Allow navigation
+  return true;
+});
 
 export default router;

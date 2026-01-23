@@ -1,4 +1,4 @@
-<!-- src/views/login.vue -->
+<!-- src/views/Login.vue -->
 <script setup>
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
@@ -20,23 +20,44 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const { loading, loginError } = storeToRefs(authStore);
-const { login } = authStore;
 
+// Form state
 const form = ref({
   email: "",
   password: "",
   role: "",
 });
 
-const isFormValid = computed(
-  () => !!form.value.email && !!form.value.password && !!form.value.role
-);
+// Role options configuration
+const ROLE_OPTIONS = [
+  {
+    id: "kepala-desa",
+    value: "kepala-desa",
+    label: "Kepala Desa",
+    iconDefault: "crown-secondary-green",
+    iconActive: "crown-dark-green",
+  },
+  {
+    id: "kepala-rumah",
+    value: "kepala-rumah",
+    label: "Kepala Rumah",
+    iconDefault: "profile-circle-secondary-green",
+    iconActive: "profile-circle-dark-green",
+  },
+];
 
-async function handleSubmit() {
+// Form validation
+const isFormValid = computed(() => {
+  const { email, password, role } = form.value;
+  return email.trim() !== "" && password !== "" && role !== "";
+});
+
+// Submit handler
+const handleSubmit = async () => {
   if (!isFormValid.value || loading.value) return;
 
   try {
-    await login({
+    await authStore.login({
       email: form.value.email.trim().toLowerCase(),
       password: form.value.password,
       role: form.value.role,
@@ -44,14 +65,16 @@ async function handleSubmit() {
 
     notificationService.success(
       SUCCESS_MESSAGES.LOGIN.message,
-      SUCCESS_MESSAGES.LOGIN.title
+      SUCCESS_MESSAGES.LOGIN.title,
     );
 
     await router.push({ name: ROUTE_NAMES.DASHBOARD });
-  } catch {
+  } catch (error) {
+    // Error handled by store and displayed via loginError reactive
+    // Just clear password for security
     form.value.password = "";
   }
-}
+};
 </script>
 
 <template>
@@ -78,7 +101,7 @@ async function handleSubmit() {
         </div>
       </header>
 
-      <!-- alert login error -->
+      <!-- Alert login error -->
       <div
         v-if="loginError"
         class="relative p-4 rounded-xl bg-red-100 border-l-4 border-red-500"
@@ -88,8 +111,8 @@ async function handleSubmit() {
         </p>
       </div>
 
+      <!-- Role selection -->
       <section id="Select" class="grid grid-cols-2 gap-6">
-        <!-- Role selection remains the same -->
         <div
           class="group relative flex items-center justify-between p-5 rounded-2xl bg-white ring-[1px] ring-desa-background hover:bg-desa-foreshadow has-[:checked]:bg-desa-foreshadow has-[:checked]:ring-desa-dark-green transition-all duration-300"
         >
@@ -155,6 +178,7 @@ async function handleSubmit() {
         </div>
       </section>
 
+      <!-- Form inputs -->
       <section id="Inputs" class="flex flex-col gap-[32px]">
         <div id="Email-Address" class="flex flex-col gap-4">
           <h2 class="font-medium leading-5 text-desa-secondary">

@@ -2,6 +2,8 @@
 
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useAuthStore } from "@/stores/auth";
+import router from "@/router";
 import { API_CONFIG, HTTP_STATUS } from "@/utils/constants";
 import { notificationService } from "@/services/notification.service";
 import { ERROR_MESSAGES } from "@/config/messages.config";
@@ -32,7 +34,7 @@ axiosInstance.interceptors.request.use(
   (error) => {
     logger.error("Request error", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response Interceptor
@@ -41,29 +43,31 @@ axiosInstance.interceptors.response.use(
     logger.success(`Response from ${response.config.url}`);
     return response;
   },
-  async (error) => {
-    const originalRequest = error.config;
-    const status = error.response?.status;
+  (error) => {
+    const { config: originalRequest, response } = error;
+    const status = response?.status;
 
     logger.error(`Error ${status} from ${originalRequest?.url}`);
 
     // Handle 401 Unauthorized (except login endpoint)
     if (shouldHandleUnauthorized(status, originalRequest)) {
-      return await handleUnauthorized();
+      handleUnauthorized();
+      return Promise.reject(new Error("Session expired"));
     }
 
     // Handle 403 Forbidden
     if (status === HTTP_STATUS.FORBIDDEN) {
-      return await handleForbidden();
+      handleForbidden();
+      return Promise.reject(new Error("Access forbidden"));
     }
 
     // Set generic network error message
-    if (!error.response) {
+    if (!response) {
       error.message = ERROR_MESSAGES.NETWORK;
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -79,50 +83,37 @@ function shouldHandleUnauthorized(status, request) {
 /**
  * Handle 401 Unauthorized
  */
-async function handleUnauthorized() {
+function handleUnauthorized() {
   logger.warn("Session expired, logging out");
 
   // Clear token
   Cookies.remove("token");
 
-  // Import and call auth store
-  const { useAuthStore } = await import("@/stores/auth");
+  // Call auth store to handle session expiration
   const authStore = useAuthStore();
   authStore.handleSessionExpired();
 
-  // Redirect to login
-  const router = await import("@/router");
-  const routeService = new (
-    await import("@/config/routes.config")
-  ).RouteService(router.default);
-
-  if (routeService.shouldRedirectToLogin()) {
-    routeService.toLogin();
+  // Redirect to login if not already there
+  const currentRoute = router.currentRoute.value.name;
+  if (currentRoute !== ROUTE_NAMES.LOGIN) {
+    router.push({ name: ROUTE_NAMES.LOGIN });
   }
-
-  return Promise.reject(new Error("Session expired"));
 }
 
 /**
  * Handle 403 Forbidden
  */
-async function handleForbidden() {
+function handleForbidden() {
   logger.warn("Access forbidden");
 
   notificationService.error(
     "Anda tidak memiliki akses ke halaman ini",
-    "Akses Ditolak"
+    "Akses Ditolak",
   );
 
-  // Redirect to 403 page
-  const router = await import("@/router");
-  const routeService = new (
-    await import("@/config/routes.config")
-  ).RouteService(router.default);
-
-  if (routeService.shouldRedirectToForbidden()) {
-    routeService.toForbidden();
+  // Redirect to 403 page if not already there
+  const currentRoute = router.currentRoute.value.name;
+  if (currentRoute !== ROUTE_NAMES.ERROR_403) {
+    router.push({ name: ROUTE_NAMES.ERROR_403 });
   }
-
-  return Promise.reject(new Error("Access forbidden"));
 }
