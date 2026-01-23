@@ -26,10 +26,6 @@ const notivue = createNotivue(notivueConfig);
 app.use(pinia);
 app.use(notivue); // ← Add this
 
-// Initialize auth store
-const authStore = useAuthStore();
-authStore.initializeAuth();
-
 // Mount app
 app.use(router);
 app.mount("#app");
