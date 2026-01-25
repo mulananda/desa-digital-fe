@@ -19,6 +19,7 @@ import {
     />
     <NotificationProgress :item="item" />
   </Notivue>
-
-  <RouterView />
+  <main>
+    <RouterView />
+  </main>
 </template>
