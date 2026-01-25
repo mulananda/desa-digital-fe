@@ -39,13 +39,12 @@ export const useAuthStore = defineStore("auth", {
 
         tokenService.set(token);
         this.token = token;
-
         this.user = await authService.fetchUser();
 
-        return this.user; // ⬅️ kunci: signal sukses
+        return this.user;
       } catch (error) {
         this.loginError = errorHandlerService.handleLoginError(error);
-        throw error;
+        throw error; // ✅ Re-throw agar Login.vue bisa handle
       } finally {
         this.loading = false;
       }
@@ -58,10 +57,11 @@ export const useAuthStore = defineStore("auth", {
       try {
         await authService.logout();
       } catch {
-        // ignore API error
+        // Ignore API error
       } finally {
         this.clearAuth();
         this.loggingOut = false;
+
         await router.replace({ name: ROUTE_NAMES.LOGIN });
       }
     },
@@ -72,15 +72,18 @@ export const useAuthStore = defineStore("auth", {
         return this.user;
       } catch (error) {
         if (error.response?.status === HTTP_STATUS.UNAUTHORIZED) {
-          this.forceLogout();
+          this.handleSessionExpired(); // ✅ Gunakan method baru
         }
         throw error;
       }
     },
 
-    forceLogout() {
+    /**
+     * ✅ Session expired handler (called from axios interceptor)
+     * Only clears auth, navigation handled by interceptor
+     */
+    handleSessionExpired() {
       this.clearAuth();
-      router.replace({ name: ROUTE_NAMES.LOGIN });
     },
 
     clearAuth() {
