@@ -198,6 +198,7 @@ const handleSubmit = async () => {
         :loading="loading"
         :disabled="!isFormValid || loading"
         aria-label="Masuk ke akun Anda"
+        class="py-[18px] flex justify-center items-center bg-desa-dark-green rounded-2xl font-medium leading-5 text-white"
       />
     </div>
   </form>
