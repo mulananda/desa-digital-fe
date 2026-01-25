@@ -16,6 +16,11 @@ import IconBriefcaseSecondaryGreen from "@/assets/images/icons/briefcase-seconda
 import IconBriefcaseBlack from "@/assets/images/icons/briefcase-black.svg";
 import IconCalendarSecondaryGreen from "@/assets/images/icons/calendar-2-secondary-green.svg";
 import IconCalendarBlack from "@/assets/images/icons/calendar-2-black.svg";
+import IconKeySecondaryGreen from "@/assets/images/icons/key-secondary-green.svg";
+import IconKeyBlack from "@/assets/images/icons/key-black.svg";
+import { ROUTE_NAMES } from "@/config/routes.config";
+import Button from "@/components/ui/Button.vue";
+import router from "@/router";
 
 const headOfFamilyStore = useHeadOfFamilyStore();
 const { loading, error } = storeToRefs(headOfFamilyStore);
@@ -37,8 +42,16 @@ const headOfFamily = ref({
 });
 
 const handleSubmit = async () => {
-  await createHeadOfFamily(headOfFamily.value);
+  try {
+    await createHeadOfFamily(headOfFamily.value);
+
+    await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
+  } catch (err) {
+    console.error("Submit error:", err);
+  }
 };
+
+const profilePictureRef = ref(null);
 
 const handleImageChange = (event) => {
   const file = event.target.files[0];
@@ -123,13 +136,13 @@ watch(
               name="file"
               class="absolute opacity-0 left-0 w-full top-0 h-full"
               @change="handleImageChange"
-              ref="profile_picture"
+              ref="profilePictureRef"
             />
             <button
               id="Upload"
               type="button"
               class="relative flex items-center py-4 px-6 rounded-2xl bg-desa-black gap-[10px]"
-              @click="$refs.profile_picture.click()"
+              @click="profilePictureRef?.click()"
             >
               <img
                 src="@/assets/images/icons/send-square-white.svg"
@@ -393,7 +406,18 @@ watch(
         <div class="flex flex-col gap-3 flex-1 shrink-0">
           <!-- add or remove .invalid class for error state (red border, icon, and text) -->
           <label class="relative group peer w-full invalid">
-            <input
+            <Input
+              v-model="headOfFamily.email"
+              type="email"
+              placeholder="Masukan Email"
+              :icon="IconProfileSecondaryGreen"
+              :filled-icon="IconProfileBlack"
+              autocomplete="email"
+              :disabled="loading"
+              required
+              :error-message="error?.email"
+            />
+            <!-- <input
               type="email"
               placeholder="Masukan Email"
               class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-12 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300 group-[.invalid]:input-invalid-state"
@@ -426,12 +450,12 @@ watch(
               src="@/assets/images/icons/close-circle-red-fill.svg"
               class="absolute transform -translate-y-1/2 top-1/2 right-4 size-6 shrink-0 hidden group-[.invalid]:flex"
               alt="icon"
-            />
+            /> -->
           </label>
-          <span
+          <!-- <span
             class="font-medium text-sm text-desa-red hidden peer-[.invalid]:block"
             >Email sudah digunakan</span
-          >
+          > -->
         </div>
       </section>
       <hr class="border-desa-background" />
@@ -443,7 +467,18 @@ watch(
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
           <label class="relative group peer w-full">
-            <input
+            <Input
+              v-model="headOfFamily.password"
+              type="password"
+              placeholder="Masukan Password"
+              :icon="IconKeySecondaryGreen"
+              :filled-icon="IconKeyBlack"
+              autocomplete="current-password"
+              :disabled="loading"
+              required
+              :error-message="error?.password"
+            />
+            <!-- <input
               type="password"
               placeholder="Masukan Password"
               class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-12 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300 tracking-[4px] placeholder:tracking-normal"
@@ -461,27 +496,27 @@ watch(
                 class="size-6 flex group-has-[:placeholder-shown]:hidden"
                 alt="icon"
               />
-            </div>
+            </div> -->
           </label>
         </div>
       </section>
       <hr class="border-desa-background" />
       <section id="Buttons" class="flex items-center justify-end gap-4">
-        <a href="kd-kepala-rumah.html">
+        <RouterLink :to="{ name: ROUTE_NAMES.HEAD_OF_FAMILY }">
           <div
             class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center flex justify-center font-medium text-white"
           >
             Batal, Tidak jadi
           </div>
-        </a>
-        <button
-          disabled
-          id="submitButton"
+        </RouterLink>
+        <Button
           type="submit"
+          label="Create Now"
+          :loading="loading"
+          :disabled="loading"
+          aria-label="Membuat Akun .."
           class="py-[18px] rounded-2xl disabled:bg-desa-grey w-[180px] text-center flex justify-center font-medium text-white bg-desa-dark-green transition-all duration-300"
-        >
-          Create Now
-        </button>
+        />
       </section>
     </div>
   </form>

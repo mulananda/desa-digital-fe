@@ -42,10 +42,10 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
         this.headOfFamilies = response.data.data;
         return response.data.data;
       } catch (error) {
+        // ✅ Untuk fetch, cukup handle error tanpa validation
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });
-        throw error;
       } finally {
         this.loading = false;
       }
@@ -80,6 +80,7 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
+          showNotification: true,
         });
 
         // ✅ Reset data saat error
@@ -91,8 +92,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
           from: 0,
           to: 0,
         };
-
-        throw error;
       } finally {
         this.loading = false;
       }
@@ -115,26 +114,32 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
+          showNotification: true,
         });
-        throw error;
       } finally {
         this.loading = false;
       }
     },
 
+    /**
+     * ✅ Create data
+     */
     async createHeadOfFamily(payload) {
       this.loading = true;
+      this.error = null;
 
       try {
         const response = await axiosInstance.post("/head-of-family", payload);
         this.success = response.data.message;
 
-        await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
+        notificationService.success(
+          response.data.message || "Kepala Keluarga Berhasil Dibuat",
+          "Berhasil",
+        );
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });
-        throw error;
       } finally {
         this.loading = false;
       }
@@ -145,9 +150,8 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
      */
     async deleteHeadOfFamily(id) {
       if (!id) {
-        const error = new Error("ID tidak valid");
         notificationService.error("ID tidak valid", "Gagal Menghapus");
-        throw error;
+        return false;
       }
 
       this.loading = true;
@@ -177,7 +181,7 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
           context: "HeadOfFamily",
           showNotification: true,
         });
-        throw error;
+        return false;
       } finally {
         this.loading = false;
       }
