@@ -16,11 +16,7 @@ defineProps({
 </script>
 
 <template>
-  <button
-    :type="type"
-    class="py-[18px] flex justify-center items-center bg-desa-dark-green rounded-2xl font-medium leading-5 text-white"
-    :disabled="loading"
-  >
+  <button :type="type" :disabled="loading">
     <span v-if="!loading">{{ label }}</span>
     <span v-else>Loading...</span>
   </button>

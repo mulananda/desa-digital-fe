@@ -14,7 +14,7 @@ defineProps({
     default: "",
   },
   errorMessage: {
-    type: String,
+    type: [String, Array],
     default: "",
   },
   icon: {
@@ -54,7 +54,7 @@ defineProps({
       />
     </div>
 
-    <span v-if="errorMessage" class="text-[12px] text-red-500">
+    <span v-if="errorMessage" class="font-medium text-sm text-desa-red">
       {{ errorMessage[0] }}
     </span>
   </div>
