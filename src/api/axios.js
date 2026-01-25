@@ -1,28 +1,29 @@
 // src/api/axios.js
-
 import axios from "axios";
-import Cookies from "js-cookie";
 import { useAuthStore } from "@/stores/auth";
 import router from "@/router";
+import { tokenService } from "@/services/token.service"; // ✅ Added
 import { API_CONFIG, HTTP_STATUS } from "@/utils/constants";
 import { notificationService } from "@/services/notification.service";
 import { ERROR_MESSAGES } from "@/config/messages.config";
 import { ROUTE_NAMES } from "@/config/routes.config";
 import { logger } from "@/utils/helpers";
 
-// Create axios instance
 export const axiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
   headers: {
-    "Content-Type": "application/json",
+    Accept: "application/json",
+    "Content-Type": "multipart/form-data",
+    "X-Requested-With": "XMLHttpRequest",
   },
+  // withCredentials: true,
 });
 
 // Request Interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = Cookies.get("token");
+    const token = tokenService.get(); // ✅ Use tokenService
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -43,7 +44,8 @@ axiosInstance.interceptors.response.use(
     logger.success(`Response from ${response.config.url}`);
     return response;
   },
-  (error) => {
+  async (error) => {
+    // ✅ Make async
     const { config: originalRequest, response } = error;
     const status = response?.status;
 
@@ -51,7 +53,7 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401 Unauthorized (except login endpoint)
     if (shouldHandleUnauthorized(status, originalRequest)) {
-      handleUnauthorized();
+      await handleUnauthorized(); // ✅ Await
       return Promise.reject(new Error("Session expired"));
     }
 
@@ -81,22 +83,18 @@ function shouldHandleUnauthorized(status, request) {
 }
 
 /**
- * Handle 401 Unauthorized
+ * ✅ REFACTORED: Handle 401 Unauthorized
  */
-function handleUnauthorized() {
+async function handleUnauthorized() {
   logger.warn("Session expired, logging out");
 
-  // Clear token
-  Cookies.remove("token");
-
-  // Call auth store to handle session expiration
   const authStore = useAuthStore();
-  authStore.handleSessionExpired();
+  const redirectRoute = authStore.handleSessionExpired();
 
-  // Redirect to login if not already there
+  // ✅ Navigate only if not already on login page
   const currentRoute = router.currentRoute.value.name;
   if (currentRoute !== ROUTE_NAMES.LOGIN) {
-    router.push({ name: ROUTE_NAMES.LOGIN });
+    await router.push(redirectRoute);
   }
 }
 
@@ -111,7 +109,6 @@ function handleForbidden() {
     "Akses Ditolak",
   );
 
-  // Redirect to 403 page if not already there
   const currentRoute = router.currentRoute.value.name;
   if (currentRoute !== ROUTE_NAMES.ERROR_403) {
     router.push({ name: ROUTE_NAMES.ERROR_403 });
