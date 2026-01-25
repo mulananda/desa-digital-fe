@@ -2,38 +2,47 @@
 import { ucfirst } from "@/helpers/format";
 import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
 import { storeToRefs } from "pinia";
-import { onMounted, watch, computed, ref } from "vue";
-import { useRoute } from "vue-router";
+import { onMounted, computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ROUTE_NAMES } from "@/config/routes.config";
 
 const route = useRoute();
-
-const headOfFamily = ref({});
+const router = useRouter();
 
 const headOfFamilyStore = useHeadOfFamilyStore();
-
-// ✅ Ambil state reaktif dari store
 const { loading } = storeToRefs(headOfFamilyStore);
 const { fetchHeadOfFamily, deleteHeadOfFamily } = headOfFamilyStore;
 
-const fetchData = async () => {
-  const response = await fetchHeadOfFamily(route.params.id);
-  headOfFamily.value = response;
-};
-
-// ✅ ID dari route (computed agar reaktif)
-const headOfFamilyId = computed(() => route.params.id);
-
+const headOfFamily = ref({});
 const showModalDelete = ref(false);
 
-// ✅ loading sudah cukup → tidak perlu computed tambahan
+// ID reaktif dari route
+const headOfFamilyId = computed(() => route.params.id);
+
+// State delete
 const isDeleting = computed(() => loading.value);
 
+// Fetch detail id
+const fetchData = async () => {
+  try {
+    headOfFamily.value = await fetchHeadOfFamily(headOfFamilyId.value);
+  } catch {
+    // optional: redirect / fallback
+  }
+};
+
+onMounted(fetchData);
+
+// Handle delete
 async function handleDelete() {
   if (!headOfFamilyId.value) return;
 
   try {
     await deleteHeadOfFamily(headOfFamilyId.value);
+
     showModalDelete.value = false;
+
+    await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
   } catch {
     showModalDelete.value = false;
   }
@@ -49,22 +58,18 @@ function closeModal() {
 function calculateAge(birthDate) {
   const today = new Date();
   const birth = new Date(birthDate);
-  // tampil Nan ketika reload jadi set null
   if (isNaN(birth.getTime())) return null;
 
   let age = today.getFullYear() - birth.getFullYear();
   const monthDiff = today.getMonth() - birth.getMonth();
   const dayDiff = today.getDate() - birth.getDate();
 
-  // Jika ulang tahun belum lewat tahun ini
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
     age--;
   }
 
   return age;
 }
-
-onMounted(fetchData);
 </script>
 
 <template>
