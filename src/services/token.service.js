@@ -15,7 +15,7 @@ class TokenService {
 
     Cookies.set(AUTH_CONFIG.TOKEN_KEY, token, {
       ...COOKIE_OPTIONS,
-      // expires: AUTH_CONFIG.TOKEN_EXPIRY_DAYS,
+      expires: AUTH_CONFIG.TOKEN_EXPIRY_DAYS,
     });
   }
 

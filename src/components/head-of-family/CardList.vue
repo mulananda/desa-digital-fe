@@ -2,7 +2,6 @@
 <script setup>
 import { ROUTE_NAMES } from "@/config/routes.config";
 import { ref, computed } from "vue";
-import defaultImage from "@/assets/images/default-avatar.webp";
 
 const props = defineProps({
   item: {
@@ -12,7 +11,7 @@ const props = defineProps({
 });
 
 // ✅ Default image jika profile picture tidak ada
-// const defaultImage = "@/assets/images/default-avatar.png"; // sesuaikan path
+const defaultImage = "/images/default-avatar.png"; // sesuaikan path
 
 // ✅ Handle image error
 const imageError = ref(false);
@@ -84,7 +83,7 @@ const handleImageError = () => {
         alt="icon"
       />
       <span class="font-medium text-desa-blue">
-        {{ item.family_members_count || 0 }} Anggota Keluarga
+        {{ item.family_members?.length || 0 }} Anggota Keluarga
       </span>
     </p>
     <RouterLink

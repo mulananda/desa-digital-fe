@@ -1,38 +1,23 @@
-// stores/headOfFamily.js
 import { defineStore } from "pinia";
 import { axiosInstance } from "@/api/axios";
 import { errorHandlerService } from "@/services/errorHandler.service";
 import { notificationService } from "@/services/notification.service";
-import { create } from "lodash";
-import router from "@/router";
 import { ROUTE_NAMES } from "@/config/routes.config";
+import router from "@/router";
 
 export const useHeadOfFamilyStore = defineStore("head-of-family", {
   state: () => ({
     headOfFamilies: [],
     meta: {
-      current_page: 1,
+      per_page: 10,
       total: 0,
-      last_page: 1,
-      from: 0,
-      to: 0,
     },
     loading: false,
     error: null,
+    success: null,
   }),
 
-  getters: {
-    // ✅ Computed getter untuk status kosong
-    isEmpty: (state) => !state.loading && state.headOfFamilies.length === 0,
-
-    // ✅ Getter untuk total data
-    totalData: (state) => state.meta.total || 0,
-  },
-
   actions: {
-    /**
-     * ✅ Fetch semua data (tanpa pagination)
-     */
     async fetchHeadOfFamilies(params = {}) {
       this.loading = true;
       this.error = null;
@@ -40,20 +25,15 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       try {
         const response = await axiosInstance.get("head-of-family", { params });
         this.headOfFamilies = response.data.data;
-        return response.data.data;
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });
-        throw error;
       } finally {
         this.loading = false;
       }
     },
 
-    /**
-     * ✅ Fetch data dengan pagination + search
-     */
     async fetchHeadOfFamiliesPaginated(params = {}) {
       this.loading = true;
       this.error = null;
@@ -61,53 +41,24 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       try {
         const response = await axiosInstance.get(
           "head-of-family/all/paginated",
-          { params },
+          { params }
         );
 
         const { data, meta } = response.data.data;
 
-        // ✅ Update state dengan data baru
         this.headOfFamilies = data;
-        this.meta = {
-          current_page: meta.current_page,
-          total: meta.total,
-          last_page: meta.last_page,
-          from: meta.from,
-          to: meta.to,
-        };
-
-        return { data, meta };
+        this.meta = meta;
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });
-
-        // ✅ Reset data saat error
-        this.headOfFamilies = [];
-        this.meta = {
-          current_page: 1,
-          total: 0,
-          last_page: 1,
-          from: 0,
-          to: 0,
-        };
-
-        throw error;
       } finally {
         this.loading = false;
       }
     },
 
-    /**
-     * ✅ Fetch single data by ID
-     */
     async fetchHeadOfFamily(id) {
-      if (!id) {
-        throw new Error("ID tidak valid");
-      }
-
       this.loading = true;
-      this.error = null;
 
       try {
         const response = await axiosInstance.get(`/head-of-family/${id}`);
@@ -116,36 +67,16 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
         });
-        throw error;
       } finally {
         this.loading = false;
       }
     },
 
-    async createHeadOfFamily(payload) {
-      this.loading = true;
-
-      try {
-        const response = await axiosInstance.post("/head-of-family", payload);
-        this.success = response.data.message;
-
-        await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
-      } catch (error) {
-        this.error = errorHandlerService.handle(error, {
-          context: "HeadOfFamily",
-        });
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    /**
-     * ✅ Delete head of family
-     */
     async deleteHeadOfFamily(id) {
+      // Validate ID
       if (!id) {
         const error = new Error("ID tidak valid");
+        this.error = error.message;
         notificationService.error("ID tidak valid", "Gagal Menghapus");
         throw error;
       }
@@ -155,48 +86,25 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
 
       try {
         const response = await axiosInstance.delete(`/head-of-family/${id}`);
+        this.success = response.data.message;
 
-        // ✅ Optimistic update - hapus dari state lokal
-        this.headOfFamilies = this.headOfFamilies.filter(
-          (item) => item.id !== id,
-        );
+        await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
 
-        // ✅ Update meta total
-        if (this.meta.total > 0) {
-          this.meta.total -= 1;
-        }
-
+        // Show success notification
         notificationService.success(
-          response.data.message || "Kepala Keluarga Berhasil Dihapus",
-          "Berhasil",
+          "Kepala Keluarga Berhasil Dihapus",
+          "Berhasil"
         );
-
-        return true;
       } catch (error) {
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
           showNotification: true,
         });
+
         throw error;
       } finally {
         this.loading = false;
       }
-    },
-
-    /**
-     * ✅ Reset state ke default
-     */
-    resetState() {
-      this.headOfFamilies = [];
-      this.meta = {
-        current_page: 1,
-        total: 0,
-        last_page: 1,
-        from: 0,
-        to: 0,
-      };
-      this.loading = false;
-      this.error = null;
     },
   },
 });

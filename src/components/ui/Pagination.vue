@@ -3,37 +3,30 @@
 import { computed } from "vue";
 
 const props = defineProps({
-  meta: {
-    type: Object,
-    required: true,
-  },
-  currentPage: {
-    type: Number,
-    required: true,
-  },
+  meta: { type: Object, required: true },
+  serverOptions: { type: Object, required: true },
 });
 
 const emit = defineEmits(["update:page"]);
 
+const currentPage = computed(() => props.meta.current_page);
 const lastPage = computed(() => props.meta.last_page);
-const canGoPrevious = computed(() => props.currentPage > 1);
-const canGoNext = computed(() => props.currentPage < lastPage.value);
+
+const canGoPrevious = computed(() => currentPage.value > 1);
+const canGoNext = computed(() => currentPage.value < lastPage.value);
 
 /**
- * Generate smart pagination dengan ellipsis
- * Algoritma: [1] ... [current-2, current-1, current, current+1, current+2] ... [last]
+ * Generate smart pagination range with ellipsis
  */
 const paginationRange = computed(() => {
   const total = lastPage.value;
-  const current = props.currentPage;
+  const current = currentPage.value;
   const delta = 2;
 
-  // Jika total page <= 7, tampilkan semua
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
-  // Generate range dengan logic smart ellipsis
   const pages = new Set([
     1,
     total,
@@ -44,7 +37,6 @@ const paginationRange = computed(() => {
     .filter((p) => p >= 1 && p <= total)
     .sort((a, b) => a - b);
 
-  // Insert ellipsis di gap > 1
   return sorted.reduce((acc, page, index) => {
     const prev = sorted[index - 1];
     if (prev && page - prev > 1) acc.push("...");
@@ -54,46 +46,45 @@ const paginationRange = computed(() => {
 });
 
 const goToPage = (page) => {
-  if (typeof page === "number" && page !== props.currentPage) {
+  if (typeof page === "number" && page !== currentPage.value) {
     emit("update:page", page);
   }
 };
 
 const previousPage = () =>
-  canGoPrevious.value && goToPage(props.currentPage - 1);
-const nextPage = () => canGoNext.value && goToPage(props.currentPage + 1);
+  canGoPrevious.value && goToPage(currentPage.value - 1);
+const nextPage = () => canGoNext.value && goToPage(currentPage.value + 1);
 </script>
 
 <template>
-  <nav v-if="meta.last_page > 1" id="Pagination">
+  <nav id="Pagination" v-if="meta.last_page > 1">
     <ul class="flex items-center gap-3">
-      <!-- Previous Button -->
-      <li>
+      <!-- Previous -->
+      <li class="group">
         <button
           @click="previousPage"
           :disabled="!canGoPrevious"
-          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-all disabled:cursor-not-allowed disabled:opacity-50 enabled:hover:bg-desa-dark-green group"
-          :aria-label="'Previous Page'"
+          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-setup disabled:cursor-not-allowed enabled:hover:bg-desa-dark-green"
         >
           <img
             src="@/assets/images/icons/arrow-left-dark-green.svg"
-            class="size-6 group-enabled:group-hover:hidden"
-            alt=""
+            class="size-6"
+            :class="{ 'group-hover:hidden': !canGoPrevious }"
           />
           <img
             src="@/assets/images/icons/arrow-left-foreshadow.svg"
-            class="hidden size-6 group-enabled:group-hover:block"
-            alt=""
+            class="hidden size-6"
+            :class="{ 'group-hover:flex': !canGoPrevious }"
           />
         </button>
       </li>
 
       <!-- Page Numbers -->
       <li
-        v-for="(page, index) in paginationRange"
-        :key="`page-${index}`"
+        v-for="page in paginationRange"
+        :key="page"
         class="group"
-        :class="{ active: page === currentPage }"
+        :class="{ active: page === meta.current_page }"
       >
         <span
           v-if="page === '...'"
@@ -105,46 +96,37 @@ const nextPage = () => canGoNext.value && goToPage(props.currentPage + 1);
         <button
           v-else
           @click="goToPage(page)"
-          :aria-label="`Go to page ${page}`"
-          :aria-current="page === currentPage ? 'page' : undefined"
-          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-setup group-hover:bg-desa-dark-green"
-          :class="{
-            'group-[.active]:bg-desa-dark-green': page === currentPage,
-          }"
+          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-setup group-hover:bg-desa-dark-green group-[.active]:bg-desa-dark-green"
         >
           <span
-            class="font-semibold text-desa-dark-green group-hover:text-desa-foreshadow"
-            :class="{
-              'group-[.active]:text-desa-foreshadow': page === currentPage,
-            }"
+            class="font-semibold text-desa-dark-green group-hover:text-desa-foreshadow group-[.active]:text-desa-foreshadow"
           >
             {{ page }}
           </span>
         </button>
       </li>
 
+      <!-- Next -->
       <li class="group">
         <button
           @click="nextPage"
           :disabled="!canGoNext"
-          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-all disabled:cursor-not-allowed disabled:opacity-50 enabled:hover:bg-desa-dark-green group"
-          :aria-label="'Next Page'"
+          class="flex size-11 items-center justify-center rounded-full bg-desa-foreshadow transition-setup disabled:cursor-not-allowed enabled:hover:bg-desa-dark-green"
         >
           <img
             src="@/assets/images/icons/arrow-left-dark-green.svg"
-            class="size-6 rotate-180 group-enabled:group-hover:hidden"
-            alt="icon"
+            class="size-6 rotate-180"
+            :class="{ 'group-hover:hidden': !canGoNext }"
           />
           <img
             src="@/assets/images/icons/arrow-left-foreshadow.svg"
-            class="hidden size-6 rotate-180 group-enabled:group-hover:block"
-            alt="icon"
+            class="hidden size-6 rotate-180"
+            :class="{ 'group-hover:flex': !canGoNext }"
           />
         </button>
       </li>
     </ul>
 
-    <!-- Info Text -->
     <p class="mt-3 text-center text-sm text-desa-secondary">
       Menampilkan {{ meta.from || 0 }} - {{ meta.to || 0 }} dari
       {{ meta.total || 0 }} data

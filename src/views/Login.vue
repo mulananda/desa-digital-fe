@@ -15,7 +15,6 @@ import IconProfileSecondaryGreen from "@/assets/images/icons/user-secondary-gree
 import IconProfileBlack from "@/assets/images/icons/user-black.svg";
 import IconKeySecondaryGreen from "@/assets/images/icons/key-secondary-green.svg";
 import IconKeyBlack from "@/assets/images/icons/key-black.svg";
-import RadioButton from "@/components/ui/RadioButton.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -26,8 +25,26 @@ const { loading, loginError } = storeToRefs(authStore);
 const form = ref({
   email: "",
   password: "",
-  role: "kepala-desa",
+  role: "",
 });
+
+// Role options configuration
+const ROLE_OPTIONS = [
+  {
+    id: "kepala-desa",
+    value: "kepala-desa",
+    label: "Kepala Desa",
+    iconDefault: "crown-secondary-green",
+    iconActive: "crown-dark-green",
+  },
+  {
+    id: "kepala-rumah",
+    value: "kepala-rumah",
+    label: "Kepala Rumah",
+    iconDefault: "profile-circle-secondary-green",
+    iconActive: "profile-circle-dark-green",
+  },
+];
 
 // Form validation
 const isFormValid = computed(() => {
@@ -99,11 +116,12 @@ const handleSubmit = async () => {
         <div
           class="group relative flex items-center justify-between p-5 rounded-2xl bg-white ring-[1px] ring-desa-background hover:bg-desa-foreshadow has-[:checked]:bg-desa-foreshadow has-[:checked]:ring-desa-dark-green transition-all duration-300"
         >
-          <RadioButton
+          <input
             id="Kepala-Desa"
             v-model="form.role"
             value="kepala-desa"
             required
+            type="radio"
             name="role"
             :disabled="loading"
             class="peer absolute left-0 right-0 top-0 bottom-0 z-50 opacity-0"
@@ -130,11 +148,12 @@ const handleSubmit = async () => {
         <div
           class="group relative flex items-center justify-between p-5 rounded-2xl bg-white ring-[1px] ring-desa-background hover:bg-desa-foreshadow has-[:checked]:bg-desa-foreshadow has-[:checked]:ring-desa-dark-green transition-all duration-300"
         >
-          <RadioButton
+          <input
             id="Kepala-Rumah"
             v-model="form.role"
             value="kepala-rumah"
             required
+            type="radio"
             name="role"
             :disabled="loading"
             class="peer absolute left-0 right-0 top-0 bottom-0 z-50 opacity-0"

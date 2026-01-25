@@ -21,7 +21,7 @@ export const HTTP_STATUS = {
 // Auth Configuration
 export const AUTH_CONFIG = {
   TOKEN_KEY: "token",
-  // TOKEN_EXPIRY_DAYS: 7,
+  TOKEN_EXPIRY_DAYS: 7,
 };
 
 // Cookie Options
