@@ -42,12 +42,10 @@ const headOfFamily = ref({
 });
 
 const handleSubmit = async () => {
-  try {
-    await createHeadOfFamily(headOfFamily.value);
-
-    await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
-  } catch (err) {
-    console.error("Submit error:", err);
+  await createHeadOfFamily(headOfFamily.value);
+  // ✅ JIKA TIDAK ADA ERROR → REDIRECT
+  if (!error.value) {
+    router.push({ name: "head-of-family" });
   }
 };
 
