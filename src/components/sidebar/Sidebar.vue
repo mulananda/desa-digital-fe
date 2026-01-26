@@ -1,11 +1,13 @@
 <script setup>
 import SidebarItem from "./SidebarItem.vue";
+import { ROUTE_PATHS, SIDEBAR_KEYS } from "@/config/routes.config";
+
 import iconChartActive from "@/assets/images/icons/chart-square-dark-green.svg";
 import iconChartInactive from "@/assets/images/icons/chart-square-secondary-green.svg";
-
 import iconCrownActive from "@/assets/images/icons/crown-dark-green.svg";
 import iconCrownInactive from "@/assets/images/icons/crown-secondary-green.svg";
-import { SIDEBAR_KEYS } from "@/config/routes.config";
+import iconBagActive from "@/assets/images/icons/bag-2-dark-green.svg";
+import iconBagInactive from "@/assets/images/icons/bag-2-secondary-green.svg";
 
 const sidebarItems = [
   {
@@ -17,10 +19,24 @@ const sidebarItems = [
   },
   {
     label: "Kepala Rumah",
-    path: "/head-of-family",
+    path: ROUTE_PATHS.HEAD_OF_FAMILY,
     sidebarKey: SIDEBAR_KEYS.HEAD_OF_FAMILY,
     iconActive: iconCrownActive,
     iconInActive: iconCrownInactive,
+  },
+  {
+    label: "Bantuan Sosial",
+    path: "",
+    sidebarKey: SIDEBAR_KEYS.SOCIAL_ASSISTANCE,
+    iconActive: iconBagActive,
+    iconInActive: iconBagInactive,
+    children: [
+      {
+        label: "List Bansos",
+        path: ROUTE_PATHS.SOCIAL_ASSISTANCE,
+        sidebarKey: SIDEBAR_KEYS.SOCIAL_ASSISTANCE,
+      },
+    ],
   },
 ];
 </script>
@@ -57,35 +73,12 @@ const sidebarItems = [
             <p class="font-medium text-sm text-desa-secondary">Main Menu</p>
             <ul class="flex flex-col gap-2">
               <SidebarItem
-                v-for="(item, index) in sidebarItems"
-                :key="index"
+                v-for="item in sidebarItems"
+                :key="item.sidebarKey || item.label"
                 :item="item"
               />
             </ul>
           </nav>
-          <div
-            class="flex items-center justify-between h-[84px] rounded-2xl p-5 mb-4 gap-3 bg-desa-black"
-          >
-            <div class="flex flex-col gap-1">
-              <p class="font-semibold leading-5 text-white">Beralih ke Pro</p>
-              <a
-                href="#"
-                class="flex items-center font-medium text-sm hover:underline text-desa-soft-green"
-              >
-                Upgrade Plan
-                <img
-                  src="@/assets/images/icons/arrow-right-soft-green.png"
-                  class="flex size-3 shrink-0 ml-0.5"
-                  alt="icon"
-                />
-              </a>
-            </div>
-            <img
-              src="@/assets/images/icons/crown-soft-green-background.svg"
-              class="flex size-11 shrink-0"
-              alt="icon"
-            />
-          </div>
         </div>
       </div>
     </div>

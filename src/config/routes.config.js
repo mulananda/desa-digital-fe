@@ -23,4 +23,5 @@ export const ROUTE_PATHS = {
 export const SIDEBAR_KEYS = {
   DASHBOARD: "dashboard",
   HEAD_OF_FAMILY: "head-of-family",
+  SOCIAL_ASSISTANCE: "social-assistance",
 };
