@@ -16,6 +16,7 @@ export const ROUTE_PATHS = {
   HEAD_OF_FAMILY: "/head-of-family",
   ID_HEAD_OF_FAMILY: "/head-of-family/:id",
   CREATE_HEAD_OF_FAMILY: "/head-of-family/create",
+  SOCIAL_ASSISTANCE: "/social-assistance",
 };
 
 // untuk aktif sidebar
