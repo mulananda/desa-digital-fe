@@ -1,47 +1,47 @@
-<!-- src/views/head-of-family/HeadOfFamilies.vue -->
 <script setup>
 import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
 import { storeToRefs } from "pinia";
-import { onMounted, onBeforeUnmount, ref, watch, computed } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { debounce } from "lodash";
+
 import CardList from "@/components/head-of-family/CardList.vue";
 import Pagination from "@/components/ui/Pagination.vue";
-import { debounce } from "lodash";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
 const router = useRouter();
 const route = useRoute();
-const headOfFamilyStore = useHeadOfFamilyStore();
+const store = useHeadOfFamilyStore();
 
-const { headOfFamilies, meta, loading, error } = storeToRefs(headOfFamilyStore);
-const { fetchHeadOfFamiliesPaginated } = headOfFamilyStore;
+const { headOfFamilies, meta, loading, error } = storeToRefs(store);
 
-// ✅ Initialize dari URL query params
+// ✅ Separate concerns: server state vs filter state
 const serverOptions = ref({
-  page: parseInt(route.query.page) || 1,
-  row_per_page: parseInt(route.query.per_page) || 10,
+  page: Number(route.query.page) || 1,
+  row_per_page: Number(route.query.per_page) || 10,
 });
 
 const filters = ref({
   search: route.query.search || "",
 });
 
-// ✅ Computed untuk params yang bersih (tidak perlu di-watch)
-const cleanedParams = computed(() => {
-  const params = {
-    page: serverOptions.value.page,
-    row_per_page: serverOptions.value.row_per_page,
+// ✅ Computed params dengan validasi
+const params = computed(() => {
+  const p = {
+    page: Math.max(1, serverOptions.value.page),
+    row_per_page: Math.max(5, serverOptions.value.row_per_page),
   };
 
-  if (filters.value.search?.trim()) {
-    params.search = filters.value.search.trim();
+  const trimmedSearch = filters.value.search?.trim();
+  if (trimmedSearch) {
+    p.search = trimmedSearch;
   }
 
-  return params;
+  return p;
 });
 
-// ✅ Sync URL dengan state (tanpa trigger fetch)
-const syncUrlWithState = () => {
+// ✅ Sync URL dengan query params
+const syncUrl = () => {
   const query = {
     page: serverOptions.value.page,
     per_page: serverOptions.value.row_per_page,
@@ -51,87 +51,81 @@ const syncUrlWithState = () => {
     query.search = filters.value.search.trim();
   }
 
-  // Replace agar tidak menambah history
   router.replace({ query });
 };
 
-// ✅ Fetch data dengan URL sync
+// ✅ Main fetch function
 const fetchData = async () => {
-  syncUrlWithState();
-  await fetchHeadOfFamiliesPaginated(cleanedParams.value);
+  syncUrl();
+  const result = await store.fetchHeadOfFamiliesPaginated(params.value);
+
+  // Auto-adjust page jika melebihi last_page
+  if (
+    result &&
+    serverOptions.value.page > meta.value.last_page &&
+    meta.value.last_page > 0
+  ) {
+    serverOptions.value.page = meta.value.last_page;
+  }
 };
 
-// ✅ Debounce hanya untuk search
-const debouncedFetchData = debounce(fetchData, 500);
+// ✅ Debounced fetch dengan proper cleanup
+const debouncedFetch = debounce(fetchData, 500);
 
-// ✅ Cleanup debounce untuk mencegah memory leak
+// ✅ Cleanup on unmount
 onBeforeUnmount(() => {
-  debouncedFetchData.cancel();
+  debouncedFetch.cancel();
+  store.cancelOngoingRequest?.(); // Jika store expose cancel method
 });
 
-// ✅ Initial fetch
-onMounted(() => {
-  fetchData();
-});
+// ✅ Watch dengan immediate untuk initial load
+watch(() => params.value, fetchData, { immediate: true });
 
-// ✅ Watch pagination - langsung fetch (no debounce)
+// ✅ Reset page saat row_per_page atau search berubah
 watch(
-  () => serverOptions.value.page,
-  (newPage, oldPage) => {
-    if (newPage !== oldPage) {
-      fetchData();
-    }
+  () => [serverOptions.value.row_per_page, filters.value.search],
+  () => {
+    serverOptions.value.page = 1;
   },
 );
 
-// ✅ Watch row_per_page - reset page + fetch
-watch(
-  () => serverOptions.value.row_per_page,
-  (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      serverOptions.value.page = 1;
-      fetchData();
+// ✅ Handle delete dengan auto page adjustment
+const handleDelete = async (id) => {
+  const success = await store.deleteHeadOfFamily(id);
+
+  if (success) {
+    const willBeEmpty = headOfFamilies.value.length === 1;
+    const isNotFirstPage = serverOptions.value.page > 1;
+
+    if (willBeEmpty && isNotFirstPage) {
+      serverOptions.value.page -= 1;
+    } else {
+      await fetchData();
     }
-  },
-);
+  }
+};
 
-// ✅ Watch search - debounced + reset page
-watch(
-  () => filters.value.search,
-  (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      serverOptions.value.page = 1;
-      debouncedFetchData();
-    }
-  },
-);
+// ✅ Empty state messages
+const emptyStateConfig = computed(() => {
+  if (filters.value.search) {
+    return {
+      message: "Tidak ada hasil pencarian",
+      description: "Coba kata kunci lain atau hapus filter",
+      icon: "user-search-secondary-green.svg",
+    };
+  }
 
-// ✅ Computed untuk empty state message
-const emptyStateMessage = computed(() => {
-  return filters.value.search
-    ? "Tidak ada hasil pencarian"
-    : "Belum ada data kepala rumah";
-});
-
-const emptyStateDescription = computed(() => {
-  return filters.value.search ? "Coba kata kunci lain atau hapus filter" : null;
+  return {
+    message: "Belum ada data kepala rumah",
+    description: null,
+    icon: "user-search-secondary-green.svg",
+  };
 });
 </script>
 
 <template>
   <div id="Header" class="flex items-center justify-between mb-6">
-    <h1 class="font-semibold text-2xl">Kepala Rumah</h1>
-    <RouterLink
-      :to="{ name: ROUTE_NAMES.CREATE_HEAD_OF_FAMILY }"
-      class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green hover:bg-desa-dark-green/90 transition-colors"
-    >
-      <img
-        src="@/assets/images/icons/add-square-white.svg"
-        class="flex size-6 shrink-0"
-        alt="icon"
-      />
-      <p class="font-medium text-white">Add New</p>
-    </RouterLink>
+    <h1 class="font-semibold text-2xl">Kepala Rumah Tangga</h1>
   </div>
 
   <section id="List-Kepala-Rumah" class="flex flex-col gap-[14px]">
@@ -188,17 +182,17 @@ const emptyStateDescription = computed(() => {
             />
           </div>
         </div>
-        <button
-          type="button"
-          class="flex items-center gap-1 h-14 w-fit rounded-2xl border border-desa-background bg-white py-4 px-6 hover:bg-gray-50 transition-colors"
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.CREATE_HEAD_OF_FAMILY }"
+          class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green hover:bg-desa-dark-green/90 transition-colors"
         >
           <img
-            src="@/assets/images/icons/filter-black.svg"
+            src="@/assets/images/icons/add-square-white.svg"
             class="flex size-6 shrink-0"
             alt="icon"
           />
-          <span class="font-medium leading-5">Filter</span>
-        </button>
+          <p class="font-medium text-white">Add New</p>
+        </RouterLink>
       </div>
     </form>
 
@@ -215,6 +209,7 @@ const emptyStateDescription = computed(() => {
     <!-- Error State -->
     <div v-else-if="error" class="flex justify-center py-12">
       <div class="flex flex-col items-center gap-3 max-w-md text-center">
+        <div class="text-red-500 text-4xl mb-2">⚠️</div>
         <p class="text-red-500 font-medium">Terjadi kesalahan</p>
         <p class="text-desa-secondary text-sm">{{ error }}</p>
         <button
@@ -232,6 +227,7 @@ const emptyStateDescription = computed(() => {
         v-for="headOfFamily in headOfFamilies"
         :key="headOfFamily.id"
         :item="headOfFamily"
+        @delete="handleDelete"
       />
 
       <!-- Pagination Component -->
@@ -248,15 +244,18 @@ const emptyStateDescription = computed(() => {
     <div v-else class="flex justify-center py-12">
       <div class="flex flex-col items-center gap-3">
         <img
-          src="@/assets/images/icons/user-search-secondary-green.svg"
+          :src="`@/assets/images/icons/${emptyStateConfig.icon}`"
           class="size-16 opacity-50"
           alt="icon"
         />
         <p class="text-desa-secondary font-medium">
-          {{ emptyStateMessage }}
+          {{ emptyStateConfig.message }}
         </p>
-        <p v-if="emptyStateDescription" class="text-desa-secondary text-sm">
-          {{ emptyStateDescription }}
+        <p
+          v-if="emptyStateConfig.description"
+          class="text-desa-secondary text-sm"
+        >
+          {{ emptyStateConfig.description }}
         </p>
       </div>
     </div>

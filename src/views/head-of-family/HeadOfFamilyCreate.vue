@@ -1,11 +1,24 @@
 <script setup>
-import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
+/* =========================
+ * IMPORTS
+ * ========================= */
+import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
-import { ref, watch } from "vue";
+import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
+import router from "@/router";
 
 import Input from "@/components/ui/Input.vue";
+import Button from "@/components/ui/Button.vue";
 
+import { ROUTE_NAMES } from "@/config/routes.config";
+import { scrollToFirstError } from "@/utils/scrollToFirstError";
+
+import { useAge } from "@/composables/usaAge";
+
+/* assets */
 import defaultPhoto from "@/assets/images/photos/kk-preview.png";
+
+/* icons */
 import IconProfileSecondaryGreen from "@/assets/images/icons/user-secondary-green.svg";
 import IconProfileBlack from "@/assets/images/icons/user-black.svg";
 import IconKeyboardSecondaryGreen from "@/assets/images/icons/keyboard-secondary-green.svg";
@@ -18,69 +31,66 @@ import IconCalendarSecondaryGreen from "@/assets/images/icons/calendar-2-seconda
 import IconCalendarBlack from "@/assets/images/icons/calendar-2-black.svg";
 import IconKeySecondaryGreen from "@/assets/images/icons/key-secondary-green.svg";
 import IconKeyBlack from "@/assets/images/icons/key-black.svg";
-import { ROUTE_NAMES } from "@/config/routes.config";
-import Button from "@/components/ui/Button.vue";
-import router from "@/router";
 
+/* =========================
+ * STORE
+ * ========================= */
 const headOfFamilyStore = useHeadOfFamilyStore();
 const { loading, error } = storeToRefs(headOfFamilyStore);
 const { createHeadOfFamily } = headOfFamilyStore;
 
+/* =========================
+ * FORM STATE
+ * ========================= */
 const headOfFamily = ref({
   name: "",
   email: "",
   password: "",
-  profile_picture: null,
-  profile_picture_url: null,
   identity_number: "",
   gender: "",
   date_of_birth: "",
-  age: null,
   phone_number: "",
   occupation: "",
   marital_status: "",
+  profile_picture: null,
+  profile_picture_url: null,
 });
 
-const handleSubmit = async () => {
-  await createHeadOfFamily(headOfFamily.value);
-  // ✅ JIKA TIDAK ADA ERROR → REDIRECT
-  if (!error.value) {
-    router.push({ name: "head-of-family" });
-  }
-};
+/* =========================
+ * COMPOSABLE
+ * ========================= */
+const { age } = useAge(computed(() => headOfFamily.value.date_of_birth));
 
+/* =========================
+ * REFS
+ * ========================= */
 const profilePictureRef = ref(null);
 
+/* =========================
+ * HANDLERS
+ * ========================= */
 const handleImageChange = (event) => {
-  const file = event.target.files[0];
+  const file = event.target?.files?.[0];
+  if (!file || !file.type.startsWith("image/")) return;
+
+  if (headOfFamily.value.profile_picture_url) {
+    URL.revokeObjectURL(headOfFamily.value.profile_picture_url);
+  }
+
   headOfFamily.value.profile_picture = file;
   headOfFamily.value.profile_picture_url = URL.createObjectURL(file);
 };
 
-// kalkulasi umur
-function calculateAge(birthDate) {
-  const today = new Date();
-  const birth = new Date(birthDate);
-  if (isNaN(birth.getTime())) return null;
+const handleSubmit = async () => {
+  await createHeadOfFamily(headOfFamily.value);
 
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  const dayDiff = today.getDate() - birth.getDate();
-
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    age--;
+  if (error.value) {
+    scrollToFirstError(error.value);
+    return;
   }
 
-  return age;
-}
-
-// melihat jika ada perubahan terjadi di inputan date_of_birth
-watch(
-  () => headOfFamily.value.date_of_birth,
-  (newDate) => {
-    headOfFamily.value.age = calculateAge(newDate);
-  },
-);
+  router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
+};
 </script>
 
 <template>
@@ -160,7 +170,10 @@ watch(
           Nama Kepala Rumah
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full valid">
+          <label
+            class="relative group peer w-full valid"
+            data-error-field="name"
+          >
             <Input
               v-model="headOfFamily.name"
               type="text"
@@ -180,7 +193,10 @@ watch(
           Nomor Induk Kependudukan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full valid">
+          <label
+            class="relative group peer w-full valid"
+            data-error-field="identity_number"
+          >
             <Input
               v-model="headOfFamily.identity_number"
               type="text"
@@ -201,7 +217,10 @@ watch(
           Nomor Handphone
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full valid">
+          <label
+            class="relative group peer w-full valid"
+            data-error-field="phone_number"
+          >
             <Input
               v-model="headOfFamily.phone_number"
               type="text"
@@ -222,7 +241,10 @@ watch(
           Pekerjaan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full valid">
+          <label
+            class="relative group peer w-full valid"
+            data-error-field="occupation"
+          >
             <Input
               v-model="headOfFamily.occupation"
               type="text"
@@ -242,7 +264,10 @@ watch(
           Tanggal Lahir
         </p>
         <div class="flex items-center gap-6 flex-1 shrink-0">
-          <label class="relative group peer w-full valid">
+          <label
+            class="relative group peer w-full valid"
+            data-error-field="date_of_birth"
+          >
             <Input
               v-model="headOfFamily.date_of_birth"
               type="date"
@@ -256,7 +281,7 @@ watch(
             class="w-[180px] flex shrink-0 h-[52px] rounded-2xl bg-desa-foreshadow p-4 font-medium leading-5 text-desa-dark-green justify-center"
           >
             <p>
-              Umur: <span id="Age">{{ headOfFamily.age }}</span> tahun
+              Umur: <span id="Age">{{ age }}</span> tahun
             </p>
           </div>
         </div>
@@ -403,7 +428,10 @@ watch(
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
           <!-- add or remove .invalid class for error state (red border, icon, and text) -->
-          <label class="relative group peer w-full invalid">
+          <label
+            class="relative group peer w-full invalid"
+            data-error-field="email"
+          >
             <Input
               v-model="headOfFamily.email"
               type="email"
@@ -464,7 +492,7 @@ watch(
           Passwords
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full">
+          <label class="relative group peer w-full" data-error-field="password">
             <Input
               v-model="headOfFamily.password"
               type="password"
