@@ -3,9 +3,9 @@ import { axiosInstance } from "@/api/axios";
 import { errorHandlerService } from "@/services/errorHandler.service";
 import { notificationService } from "@/services/notification.service";
 
-/**
- * Default pagination meta (DRY)
- */
+/* =====================
+ * Helpers
+ * ===================== */
 const defaultMeta = () => ({
   current_page: 1,
   total: 0,
@@ -14,10 +14,9 @@ const defaultMeta = () => ({
   to: 0,
 });
 
-let abortController = null;
-
 export const useHeadOfFamilyStore = defineStore("head-of-family", {
   state: () => ({
+    abortController: null,
     headOfFamilies: [],
     meta: defaultMeta(),
     loading: false,
@@ -26,23 +25,16 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
 
   getters: {
     isEmpty: (state) => !state.loading && state.headOfFamilies.length === 0,
-
     totalData: (state) => state.meta.total || 0,
   },
 
   actions: {
-    /**
-     * Fetch data dengan pagination + search
-     * - Abort request sebelumnya (anti race condition)
-     * - Tidak reset data saat error (UX safe)
-     */
     async fetchHeadOfFamiliesPaginated(params = {}) {
-      // Cancel previous request
-      if (abortController) {
-        abortController.abort();
+      if (this.abortController) {
+        this.abortController.abort();
       }
 
-      abortController = new AbortController();
+      this.abortController = new AbortController();
       this.loading = true;
       this.error = null;
 
@@ -51,7 +43,7 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
           "head-of-family/all/paginated",
           {
             params,
-            signal: abortController.signal,
+            signal: this.abortController.signal,
           },
         );
 
@@ -68,9 +60,7 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
 
         return { data, meta };
       } catch (error) {
-        // Ignore abort error
         if (error.name === "CanceledError") return;
-
         this.error = errorHandlerService.handle(error, {
           context: "HeadOfFamily",
           showNotification: true,
@@ -80,9 +70,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       }
     },
 
-    /**
-     * Fetch single data
-     */
     async fetchHeadOfFamily(id) {
       if (!id) throw new Error("ID tidak valid");
 
@@ -102,9 +89,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       }
     },
 
-    /**
-     * Create
-     */
     async createHeadOfFamily(payload) {
       this.loading = true;
       this.error = null;
@@ -128,9 +112,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       }
     },
 
-    /**
-     * Delete (safe pagination)
-     */
     async deleteHeadOfFamily(id) {
       if (!id) {
         notificationService.error("ID tidak valid", "Gagal Menghapus");
@@ -147,9 +128,7 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
           (item) => item.id !== id,
         );
 
-        if (this.meta.total > 0) {
-          this.meta.total -= 1;
-        }
+        if (this.meta.total > 0) this.meta.total--;
 
         notificationService.success(
           response.data.message || "Kepala Keluarga Berhasil Dihapus",
@@ -168,9 +147,6 @@ export const useHeadOfFamilyStore = defineStore("head-of-family", {
       }
     },
 
-    /**
-     * Reset store
-     */
     resetState() {
       this.headOfFamilies = [];
       this.meta = defaultMeta();

@@ -1,126 +1,134 @@
 <script setup>
-import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
-import { storeToRefs } from "pinia";
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { storeToRefs } from "pinia";
 import { debounce } from "lodash";
 
+import { useHeadOfFamilyStore } from "@/stores/headOfFamily";
 import CardList from "@/components/head-of-family/CardList.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
+/* =====================
+ * Setup
+ * ===================== */
 const router = useRouter();
 const route = useRoute();
 const store = useHeadOfFamilyStore();
-
 const { headOfFamilies, meta, loading, error } = storeToRefs(store);
 
-// ✅ Separate concerns: server state vs filter state
-const serverOptions = ref({
+/* =====================
+ * State
+ * ===================== */
+const pagination = ref({
   page: Number(route.query.page) || 1,
-  row_per_page: Number(route.query.per_page) || 10,
+  perPage: Number(route.query.per_page) || 10,
 });
 
 const filters = ref({
   search: route.query.search || "",
 });
 
-// ✅ Computed params dengan validasi
-const params = computed(() => {
-  const p = {
-    page: Math.max(1, serverOptions.value.page),
-    row_per_page: Math.max(5, serverOptions.value.row_per_page),
-  };
-
-  const trimmedSearch = filters.value.search?.trim();
-  if (trimmedSearch) {
-    p.search = trimmedSearch;
-  }
-
-  return p;
-});
-
-// ✅ Sync URL dengan query params
-const syncUrl = () => {
-  const query = {
-    page: serverOptions.value.page,
-    per_page: serverOptions.value.row_per_page,
+/* =====================
+ * Query Params Builder
+ * ===================== */
+const queryParams = computed(() => {
+  const params = {
+    page: Math.max(1, pagination.value.page),
+    row_per_page: pagination.value.perPage,
   };
 
   if (filters.value.search?.trim()) {
-    query.search = filters.value.search.trim();
+    params.search = filters.value.search.trim();
   }
 
-  router.replace({ query });
+  return params;
+});
+
+/* =====================
+ * URL Sync
+ * ===================== */
+const syncUrl = () => {
+  router.replace({
+    query: {
+      page: pagination.value.page,
+      per_page: pagination.value.perPage,
+      ...(filters.value.search && { search: filters.value.search }),
+    },
+  });
 };
 
-// ✅ Main fetch function
+/* =====================
+ * Fetch Data
+ * ===================== */
 const fetchData = async () => {
   syncUrl();
-  const result = await store.fetchHeadOfFamiliesPaginated(params.value);
+  const result = await store.fetchHeadOfFamiliesPaginated(queryParams.value);
 
-  // Auto-adjust page jika melebihi last_page
   if (
     result &&
-    serverOptions.value.page > meta.value.last_page &&
+    pagination.value.page > meta.value.last_page &&
     meta.value.last_page > 0
   ) {
-    serverOptions.value.page = meta.value.last_page;
+    pagination.value.page = meta.value.last_page;
   }
 };
 
-// ✅ Debounced fetch dengan proper cleanup
-const debouncedFetch = debounce(fetchData, 500);
+/* =====================
+ * Debounced Search
+ * ===================== */
+const debouncedSearch = debounce(() => {
+  pagination.value.page = 1;
+  fetchData();
+}, 500);
 
-// ✅ Cleanup on unmount
-onBeforeUnmount(() => {
-  debouncedFetch.cancel();
-  store.cancelOngoingRequest?.(); // Jika store expose cancel method
+/* =====================
+ * Watchers
+ * ===================== */
+watch(() => [pagination.value.page, pagination.value.perPage], fetchData, {
+  immediate: true,
 });
 
-// ✅ Watch dengan immediate untuk initial load
-watch(() => params.value, fetchData, { immediate: true });
-
-// ✅ Reset page saat row_per_page atau search berubah
 watch(
-  () => [serverOptions.value.row_per_page, filters.value.search],
-  () => {
-    serverOptions.value.page = 1;
-  },
+  () => filters.value.search,
+  () => debouncedSearch(),
 );
 
-// ✅ Handle delete dengan auto page adjustment
+/* =====================
+ * Cleanup
+ * ===================== */
+onBeforeUnmount(() => {
+  debouncedSearch.cancel();
+  store.cancelOngoingRequest?.();
+});
+
+/* =====================
+ * Delete Handler
+ * ===================== */
 const handleDelete = async (id) => {
   const success = await store.deleteHeadOfFamily(id);
+  if (!success) return;
 
-  if (success) {
-    const willBeEmpty = headOfFamilies.value.length === 1;
-    const isNotFirstPage = serverOptions.value.page > 1;
-
-    if (willBeEmpty && isNotFirstPage) {
-      serverOptions.value.page -= 1;
-    } else {
-      await fetchData();
-    }
+  const isLastItem = headOfFamilies.value.length === 0;
+  if (isLastItem && pagination.value.page > 1) {
+    pagination.value.page--;
+  } else {
+    fetchData();
   }
 };
 
-// ✅ Empty state messages
-const emptyStateConfig = computed(() => {
-  if (filters.value.search) {
-    return {
-      message: "Tidak ada hasil pencarian",
-      description: "Coba kata kunci lain atau hapus filter",
-      icon: "user-search-secondary-green.svg",
-    };
-  }
-
-  return {
-    message: "Belum ada data kepala rumah",
-    description: null,
-    icon: "user-search-secondary-green.svg",
-  };
-});
+/* =====================
+ * Empty State
+ * ===================== */
+const emptyStateConfig = computed(() => ({
+  message: filters.value.search
+    ? "Tidak ada hasil pencarian"
+    : "Belum ada data kepala rumah",
+  description: filters.value.search
+    ? "Coba kata kunci lain atau hapus filter"
+    : null,
+  icon: "user-search-secondary-green.svg",
+}));
 </script>
 
 <template>
@@ -165,7 +173,7 @@ const emptyStateConfig = computed(() => {
           <span class="font-medium leading-5">Show</span>
           <div class="relative">
             <select
-              v-model.number="serverOptions.row_per_page"
+              v-model.number="pagination.perPage"
               class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-6 pr-[52px] font-medium transition-all duration-300"
             >
               <option :value="5">5 Entries</option>
@@ -234,9 +242,9 @@ const emptyStateConfig = computed(() => {
       <Pagination
         v-if="meta.total > 0"
         :meta="meta"
-        :current-page="serverOptions.page"
+        :current-page="pagination.page"
         class="mt-4"
-        @update:page="serverOptions.page = $event"
+        @update:page="pagination.page = $event"
       />
     </template>
 

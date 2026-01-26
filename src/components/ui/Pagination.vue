@@ -3,37 +3,30 @@
 import { computed } from "vue";
 
 const props = defineProps({
-  meta: {
-    type: Object,
-    required: true,
-  },
-  currentPage: {
-    type: Number,
-    required: true,
-  },
+  meta: { type: Object, required: true },
+  currentPage: { type: Number, required: true },
 });
 
 const emit = defineEmits(["update:page"]);
+
+const ELLIPSIS = "...";
 
 const lastPage = computed(() => props.meta.last_page);
 const canGoPrevious = computed(() => props.currentPage > 1);
 const canGoNext = computed(() => props.currentPage < lastPage.value);
 
 /**
- * Generate smart pagination dengan ellipsis
- * Algoritma: [1] ... [current-2, current-1, current, current+1, current+2] ... [last]
+ * Smart pagination range
  */
 const paginationRange = computed(() => {
   const total = lastPage.value;
   const current = props.currentPage;
   const delta = 2;
 
-  // Jika total page <= 7, tampilkan semua
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
-  // Generate range dengan logic smart ellipsis
   const pages = new Set([
     1,
     total,
@@ -44,10 +37,9 @@ const paginationRange = computed(() => {
     .filter((p) => p >= 1 && p <= total)
     .sort((a, b) => a - b);
 
-  // Insert ellipsis di gap > 1
   return sorted.reduce((acc, page, index) => {
     const prev = sorted[index - 1];
-    if (prev && page - prev > 1) acc.push("...");
+    if (prev && page - prev > 1) acc.push(ELLIPSIS);
     acc.push(page);
     return acc;
   }, []);
@@ -61,6 +53,7 @@ const goToPage = (page) => {
 
 const previousPage = () =>
   canGoPrevious.value && goToPage(props.currentPage - 1);
+
 const nextPage = () => canGoNext.value && goToPage(props.currentPage + 1);
 </script>
 

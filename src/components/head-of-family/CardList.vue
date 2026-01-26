@@ -1,27 +1,28 @@
 <!-- src/components/head-of-family/CardList.vue -->
 <script setup>
 import { ROUTE_NAMES } from "@/config/routes.config";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import defaultImage from "@/assets/images/default-avatar.webp";
 
 const props = defineProps({
-  item: {
-    type: Object,
-    required: true,
-  },
+  item: { type: Object, required: true },
 });
 
-// ✅ Default image jika profile picture tidak ada
-// const defaultImage = "@/assets/images/default-avatar.png"; // sesuaikan path
-
-// ✅ Handle image error
+/* =====================
+ * Image Handling
+ * ===================== */
 const imageError = ref(false);
-const imageUrl = computed(() => {
-  if (imageError.value || !props.item.profile_picture) {
-    return defaultImage;
-  }
-  return props.item.profile_picture;
-});
+
+watch(
+  () => props.item.profile_picture,
+  () => (imageError.value = false),
+);
+
+const imageUrl = computed(() =>
+  imageError.value || !props.item.profile_picture
+    ? defaultImage
+    : props.item.profile_picture,
+);
 
 const handleImageError = () => {
   imageError.value = true;
