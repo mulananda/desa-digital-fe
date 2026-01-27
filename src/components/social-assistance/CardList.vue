@@ -1,4 +1,5 @@
 <script setup>
+import { ROUTE_NAMES } from "@/config/routes.config";
 import { formatRupiah } from "@/helpers/format";
 
 const props = defineProps({
@@ -36,12 +37,15 @@ const props = defineProps({
           }}</span>
         </p>
       </div>
-      <a
-        href="kd-bantuan-sosial-manage.html"
-        class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
+      <RouterLink
+        :to="{
+          name: ROUTE_NAMES.MANAGE_SOCIAL_ASSISTANCE,
+          params: { id: item.id },
+        }"
+        class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black hover:bg-desa-black/90 transition-colors"
       >
         <span class="font-medium text-white">Manage</span>
-      </a>
+      </RouterLink>
     </div>
     <hr class="border-desa-background" />
     <div class="grid grid-cols-3 gap-3">
