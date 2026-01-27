@@ -6,6 +6,9 @@ import { onMounted, computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
+// components
+import ModalDelete from "@/components/ui/ModalDelete.vue";
+
 const route = useRoute();
 const router = useRouter();
 
@@ -16,13 +19,13 @@ const { fetchHeadOfFamily, deleteHeadOfFamily } = headOfFamilyStore;
 const headOfFamily = ref({});
 const showModalDelete = ref(false);
 
-// ID reaktif dari route
+// ID dari route
 const headOfFamilyId = computed(() => route.params.id);
 
-// State delete
+// loading khusus delete
 const isDeleting = computed(() => loading.value);
 
-// Fetch detail id
+// fetch data
 const fetchData = async () => {
   try {
     headOfFamily.value = await fetchHeadOfFamily(headOfFamilyId.value);
@@ -33,41 +36,30 @@ const fetchData = async () => {
 
 onMounted(fetchData);
 
-// Handle delete
+// delete handler
 async function handleDelete() {
   if (!headOfFamilyId.value) return;
 
   try {
     await deleteHeadOfFamily(headOfFamilyId.value);
-
     showModalDelete.value = false;
-
     await router.push({ name: ROUTE_NAMES.HEAD_OF_FAMILY });
   } catch {
     showModalDelete.value = false;
   }
 }
 
-function closeModal() {
-  if (!isDeleting.value) {
-    showModalDelete.value = false;
-  }
-}
-
-// kalkulasi umur
+// util
 function calculateAge(birthDate) {
   const today = new Date();
   const birth = new Date(birthDate);
   if (isNaN(birth.getTime())) return null;
 
   let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  const dayDiff = today.getDate() - birth.getDate();
+  const m = today.getMonth() - birth.getMonth();
+  const d = today.getDate() - birth.getDate();
 
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    age--;
-  }
-
+  if (m < 0 || (m === 0 && d < 0)) age--;
   return age;
 }
 </script>
@@ -865,91 +857,12 @@ function calculateAge(birthDate) {
       </section>
     </div>
   </div>
-
-  <!-- Optimized Modal -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition-opacity duration-200"
-      leave-active-class="transition-opacity duration-200"
-      enter-from-class="opacity-0"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="showModalDelete"
-        id="Modal-Delete"
-        class="modal fixed inset-0 h-screen z-40 flex bg-[#080C1ACC]"
-        @click.self="closeModal"
-      >
-        <div
-          id="Alert"
-          class="flex flex-col w-[335px] shrink-0 rounded-2xl overflow-hidden bg-white m-auto"
-          role="dialog"
-          aria-labelledby="modal-title"
-          aria-describedby="modal-description"
-        >
-          <div
-            class="flex items-center justify-between p-4 gap-3 bg-desa-black"
-          >
-            <p id="modal-title" class="font-medium leading-5 text-white">
-              Hapus Kepala Keluarga?
-            </p>
-            <button
-              class="btn-close-modal hover:opacity-80 transition-opacity disabled:opacity-50"
-              :disabled="isDeleting"
-              @click="closeModal"
-              aria-label="Tutup modal"
-            >
-              <img
-                src="@/assets/images/icons/close-circle-white.svg"
-                class="flex size-6 shrink-0"
-                alt="icon"
-              />
-            </button>
-          </div>
-          <div class="flex flex-col p-4 gap-3">
-            <p
-              id="modal-description"
-              class="font-medium text-sm leading-[22.5px] text-desa-secondary"
-            >
-              Tindakan ini permanen dan tidak bisa dibatalkan!
-            </p>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-3">
-              <button
-                class="btn-close-modal flex items-center h-14 rounded-2xl py-3 px-8 gap-[10px] border border-desa-background hover:bg-desa-black hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="isDeleting"
-                @click="closeModal"
-              >
-                <span class="font-semibold text-sm">Batal</span>
-              </button>
-              <button
-                class="flex items-center justify-center h-14 rounded-2xl py-3 px-8 gap-[10px] bg-desa-red w-full hover:bg-desa-red/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="isDeleting"
-                @click="handleDelete"
-              >
-                <span v-if="!isDeleting" class="flex items-center gap-[10px]">
-                  <img
-                    src="@/assets/images/icons/trash-white.svg"
-                    class="flex size-6 shrink-0"
-                    alt=""
-                  />
-                  <span class="font-semibold text-sm text-white"
-                    >Iya Hapus</span
-                  >
-                </span>
-                <span v-else class="flex items-center gap-2">
-                  <span
-                    class="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
-                  ></span>
-                  <span class="font-semibold text-sm text-white"
-                    >Menghapus...</span
-                  >
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <ModalDelete
+    v-model="showModalDelete"
+    title="Hapus Kepala Keluarga?"
+    description="Tindakan ini permanen dan tidak bisa dibatalkan!"
+    :loading="isDeleting"
+    confirm-text="Iya Hapus"
+    @confirm="handleDelete"
+  />
 </template>
