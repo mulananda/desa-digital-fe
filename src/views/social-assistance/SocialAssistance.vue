@@ -1,4 +1,135 @@
-<script setup></script>
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { storeToRefs } from "pinia";
+import { debounce } from "lodash";
+
+import { useSocialAssistanceStore } from "@/stores/socialAssistance";
+import CardList from "@/components/social-assistance/CardList.vue";
+import Pagination from "@/components/ui/Pagination.vue";
+import { ROUTE_NAMES } from "@/config/routes.config";
+
+/* =====================
+ * Setup
+ * ===================== */
+const router = useRouter();
+const route = useRoute();
+const store = useSocialAssistanceStore();
+const { socialAssistances, meta, loading, error } = storeToRefs(store);
+
+/* =====================
+ * State
+ * ===================== */
+const pagination = ref({
+  page: Number(route.query.page) || 1,
+  perPage: Number(route.query.per_page) || 10,
+});
+
+const filters = ref({
+  search: route.query.search || "",
+});
+
+/* =====================
+ * Query Params Builder
+ * ===================== */
+const queryParams = computed(() => {
+  const params = {
+    page: Math.max(1, pagination.value.page),
+    row_per_page: pagination.value.perPage,
+  };
+
+  if (filters.value.search?.trim()) {
+    params.search = filters.value.search.trim();
+  }
+
+  return params;
+});
+
+/* =====================
+ * URL Sync
+ * ===================== */
+const syncUrl = () => {
+  router.replace({
+    query: {
+      page: pagination.value.page,
+      per_page: pagination.value.perPage,
+      ...(filters.value.search && { search: filters.value.search }),
+    },
+  });
+};
+
+/* =====================
+ * Fetch Data
+ * ===================== */
+const fetchData = async () => {
+  syncUrl();
+  const result = await store.fetchSocialAssistancesPaginated(queryParams.value);
+
+  if (
+    result &&
+    pagination.value.page > meta.value.last_page &&
+    meta.value.last_page > 0
+  ) {
+    pagination.value.page = meta.value.last_page;
+  }
+};
+
+/* =====================
+ * Debounced Search
+ * ===================== */
+const debouncedSearch = debounce(() => {
+  pagination.value.page = 1;
+  fetchData();
+}, 500);
+
+/* =====================
+ * Watchers
+ * ===================== */
+watch(() => [pagination.value.page, pagination.value.perPage], fetchData, {
+  immediate: true,
+});
+
+watch(
+  () => filters.value.search,
+  () => debouncedSearch(),
+);
+
+/* =====================
+ * Cleanup
+ * ===================== */
+onBeforeUnmount(() => {
+  debouncedSearch.cancel();
+  store.cancelOngoingRequest?.();
+});
+
+/* =====================
+ * Delete Handler
+ * ===================== */
+// const handleDelete = async (id) => {
+//   const success = await store.deleteHeadOfFamily(id);
+//   if (!success) return;
+
+//   const isLastItem = headOfFamilies.value.length === 0;
+//   if (isLastItem && pagination.value.page > 1) {
+//     pagination.value.page--;
+//   } else {
+//     fetchData();
+//   }
+// };
+
+/* =====================
+ * Empty State
+ * ===================== */
+const emptyStateConfig = computed(() => ({
+  message: filters.value.search
+    ? "Tidak ada hasil pencarian"
+    : "Belum ada data kepala rumah",
+  description: filters.value.search
+    ? "Coba kata kunci lain atau hapus filter"
+    : null,
+  icon: "user-search-secondary-green.svg",
+}));
+</script>
 <template>
   <div id="Header" class="flex items-center justify-between">
     <h1 class="font-semibold text-2xl">List Bantuan Sosial</h1>
@@ -15,10 +146,15 @@
     </a>
   </div>
   <section id="List-Bantuan-Sosial" class="flex flex-col gap-[14px]">
-    <form id="Page-Search" class="flex items-center justify-between">
+    <form
+      id="Page-Search"
+      class="flex items-center justify-between"
+      @submit.prevent
+    >
       <div class="flex flex-col gap-3 w-[370px] shrink-0">
         <label class="relative group peer w-full valid">
           <input
+            v-model="filters.search"
             type="text"
             placeholder="Cari nama bantuan social"
             class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 pl-12 pr-6 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300"
@@ -44,20 +180,19 @@
           <span class="font-medium leading-5">Show</span>
           <div class="relative">
             <select
-              name=""
-              id=""
-              class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-6 pr-[52px] gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300"
+              v-model.number="pagination.perPage"
+              class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-6 pr-[52px] font-medium transition-all duration-300"
             >
-              <option value="5" selected>5 Entries</option>
-              <option value="10">10 Entries</option>
-              <option value="20">20 Entries</option>
-              <option value="30">30 Entries</option>
-              <option value="40">40 Entries</option>
-              <option value="50">50 Entries</option>
+              <option :value="5">5 Entries</option>
+              <option :value="10">10 Entries</option>
+              <option :value="20">20 Entries</option>
+              <option :value="30">30 Entries</option>
+              <option :value="40">40 Entries</option>
+              <option :value="50">50 Entries</option>
             </select>
             <img
               src="@/assets/images/icons/arrow-down-black.svg"
-              class="flex size-6 shrink-0 absolute transform -translate-y-1/2 top-1/2 right-6"
+              class="flex size-6 shrink-0 absolute transform -translate-y-1/2 top-1/2 right-6 pointer-events-none"
               alt="icon"
             />
           </div>
@@ -75,454 +210,66 @@
         </button>
       </div>
     </form>
-    <div class="card flex flex-col gap-6 rounded-3xl p-6 bg-white">
-      <div class="flex items-center w-full">
+
+    <!-- Loading State -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <div class="flex flex-col items-center gap-3">
         <div
-          class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
-        >
-          <img
-            src="@/assets/images/thumbnails/kk-bansos-1.png"
-            class="w-full h-full object-cover"
-            alt="photo"
-          />
-        </div>
-        <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
-          <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-            Bantuan Untuk Rakyat Kurang Mampu
-          </p>
-          <p class="flex items-center gap-1">
-            <img
-              src="@/assets/images/icons/profile-secondary-green.svg"
-              class="flex size-[18px] shrink-0"
-              alt="icon"
-            />
-            <span class="font-medium text-sm text-desa-secondary"
-              >PT Shaynakit Meningkatkan Bangsa</span
-            >
-          </p>
-        </div>
-        <a
-          href="kd-bantuan-sosial-manage.html"
-          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-        >
-          <span class="font-medium text-white">Manage</span>
-        </a>
-      </div>
-      <hr class="border-desa-background" />
-      <div class="grid grid-cols-3 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/money-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Rp120.000.000
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Uang Tunai</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-blue/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/profile-2user-blue.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-blue">
-              15.600 Warga
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">
-              Total Pengajuan
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-red/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/minus-square-red.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-red">
-              Tidak Tersedia
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Status Bansos</p>
-          </div>
-        </div>
+          class="animate-spin rounded-full h-10 w-10 border-b-2 border-desa-dark-green"
+        ></div>
+        <p class="text-desa-secondary">Memuat data...</p>
       </div>
     </div>
-    <div class="card flex flex-col gap-6 rounded-3xl p-6 bg-white">
-      <div class="flex items-center w-full">
-        <div
-          class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
+
+    <!-- Error State -->
+    <div v-else-if="error" class="flex justify-center py-12">
+      <div class="flex flex-col items-center gap-3 max-w-md text-center">
+        <div class="text-red-500 text-4xl mb-2">⚠️</div>
+        <p class="text-red-500 font-medium">Terjadi kesalahan</p>
+        <p class="text-desa-secondary text-sm">{{ error }}</p>
+        <button
+          @click="fetchData"
+          class="px-4 py-2 bg-desa-dark-green text-white rounded-lg hover:bg-desa-dark-green/90 transition-colors"
         >
-          <img
-            src="@/assets/images/thumbnails/kk-bansos-2.png"
-            class="w-full h-full object-cover"
-            alt="photo"
-          />
-        </div>
-        <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
-          <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-            Peduli Sesama: Penyaluran Beras untuk Warga Desa
-          </p>
-          <p class="flex items-center gap-1">
-            <img
-              src="@/assets/images/icons/profile-secondary-green.svg"
-              class="flex size-[18px] shrink-0"
-              alt="icon"
-            />
-            <span class="font-medium text-sm text-desa-secondary"
-              >PT Angga Membangun Indonesia</span
-            >
-          </p>
-        </div>
-        <a
-          href="kd-bantuan-sosial-manage.html"
-          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-        >
-          <span class="font-medium text-white">Manage</span>
-        </a>
-      </div>
-      <hr class="border-desa-background" />
-      <div class="grid grid-cols-3 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/bag-2-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Beras 20 ton
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Bahan Pokok</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-blue/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/profile-2user-blue.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-blue">
-              15.600 Warga
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">
-              Total Pengajuan
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/tick-square-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Tersedia
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Status Bansos</p>
-          </div>
-        </div>
+          Coba Lagi
+        </button>
       </div>
     </div>
-    <div class="card flex flex-col gap-6 rounded-3xl p-6 bg-white">
-      <div class="flex items-center w-full">
-        <div
-          class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
+    <!-- Data List -->
+    <template v-else-if="socialAssistances?.length > 0">
+      <CardList
+        v-for="socialAssistance in socialAssistances"
+        :key="socialAssistance.id"
+        :item="socialAssistance"
+      />
+
+      <!-- Pagination Component -->
+      <Pagination
+        v-if="meta.total > 0"
+        :meta="meta"
+        :current-page="pagination.page"
+        class="mt-4"
+        @update:page="pagination.page = $event"
+      />
+    </template>
+
+    <!-- Empty State -->
+    <div v-else class="flex justify-center py-12">
+      <div class="flex flex-col items-center gap-3">
+        <img
+          :src="`@/assets/images/icons/${emptyStateConfig.icon}`"
+          class="size-16 opacity-50"
+          alt="icon"
+        />
+        <p class="text-desa-secondary font-medium">
+          {{ emptyStateConfig.message }}
+        </p>
+        <p
+          v-if="emptyStateConfig.description"
+          class="text-desa-secondary text-sm"
         >
-          <img
-            src="@/assets/images/thumbnails/kk-bansos-3.png"
-            class="w-full h-full object-cover"
-            alt="photo"
-          />
-        </div>
-        <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
-          <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-            Mendukung Pertumbuhan Anak dengan Nutrisi Terbaik
-          </p>
-          <p class="flex items-center gap-1">
-            <img
-              src="@/assets/images/icons/profile-secondary-green.svg"
-              class="flex size-[18px] shrink-0"
-              alt="icon"
-            />
-            <span class="font-medium text-sm text-desa-secondary"
-              >PT Peternakan Sapi Bimore</span
-            >
-          </p>
-        </div>
-        <a
-          href="kd-bantuan-sosial-manage.html"
-          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-        >
-          <span class="font-medium text-white">Manage</span>
-        </a>
-      </div>
-      <hr class="border-desa-background" />
-      <div class="grid grid-cols-3 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/milk-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Susu 9.000 ml
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Bahan Pokok</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-blue/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/profile-2user-blue.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-blue">
-              15.600 Warga
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">
-              Total Pengajuan
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/tick-square-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Tersedia
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Status Bansos</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card flex flex-col gap-6 rounded-3xl p-6 bg-white">
-      <div class="flex items-center w-full">
-        <div
-          class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
-        >
-          <img
-            src="@/assets/images/thumbnails/kk-bansos-4.png"
-            class="w-full h-full object-cover"
-            alt="photo"
-          />
-        </div>
-        <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
-          <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-            Energi Untuk Rakyat: Bantuan Bahan Bakar Kendaraan bagi Warga Desa
-          </p>
-          <p class="flex items-center gap-1">
-            <img
-              src="@/assets/images/icons/profile-secondary-green.svg"
-              class="flex size-[18px] shrink-0"
-              alt="icon"
-            />
-            <span class="font-medium text-sm text-desa-secondary"
-              >PT Masayoshi Membangun Indonesia</span
-            >
-          </p>
-        </div>
-        <a
-          href="kd-bantuan-sosial-manage.html"
-          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-        >
-          <span class="font-medium text-white">Manage</span>
-        </a>
-      </div>
-      <hr class="border-desa-background" />
-      <div class="grid grid-cols-3 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/gas-station-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              BBM 3.200 liter
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Bahan Pokok</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-blue/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/profile-2user-blue.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-blue">
-              15.600 Warga
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">
-              Total Pengajuan
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/tick-square-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Tersedia
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Status Bansos</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card flex flex-col gap-6 rounded-3xl p-6 bg-white">
-      <div class="flex items-center w-full">
-        <div
-          class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
-        >
-          <img
-            src="@/assets/images/thumbnails/kk-bansos-5.png"
-            class="w-full h-full object-cover"
-            alt="photo"
-          />
-        </div>
-        <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
-          <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-            Energi Untuk Rakyat: Bantuan Bahan Bakar Kendaraan bagi Warga Desa
-          </p>
-          <p class="flex items-center gap-1">
-            <img
-              src="@/assets/images/icons/profile-secondary-green.svg"
-              class="flex size-[18px] shrink-0"
-              alt="icon"
-            />
-            <span class="font-medium text-sm text-desa-secondary"
-              >PT Masayoshi Membangun Indonesia</span
-            >
-          </p>
-        </div>
-        <a
-          href="kd-bantuan-sosial-manage.html"
-          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-        >
-          <span class="font-medium text-white">Manage</span>
-        </a>
-      </div>
-      <hr class="border-desa-background" />
-      <div class="grid grid-cols-3 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/bag-2-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Beras 20 ton
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Bahan Pokok</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-blue/10 overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/profile-2user-blue.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-blue">
-              15.600 Warga
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">
-              Total Pengajuan
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="flex size-[52px] rounded-2xl items-center justify-center bg-desa-foreshadow overflow-hidden"
-          >
-            <img
-              src="@/assets/images/icons/tick-square-dark-green.svg"
-              class="flex size-6 shrink-0"
-              alt="icon"
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <p class="font-semibold text-lg leading-5 text-desa-dark-green">
-              Tersedia
-            </p>
-            <p class="font-medium text-sm text-desa-secondary">Status Bansos</p>
-          </div>
-        </div>
+          {{ emptyStateConfig.description }}
+        </p>
       </div>
     </div>
   </section>
