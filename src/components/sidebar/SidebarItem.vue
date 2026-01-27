@@ -33,22 +33,21 @@ const isActive = computed(() => {
  * - salah satu child aktif
  */
 const isParentActive = computed(() => {
-  if (isActive.value) return true;
-  if (!props.item.children) return false;
+  if (!props.item.children) return isActive.value;
 
-  return props.item.children.some((child) => child.path === route.path);
+  return route.meta?.sidebarKey === props.item.sidebarKey;
 });
 
 /**
  * WATCH ROUTE
- * auto buka / tutup accordion sesuai route
+ * auto buka / tutup accordion sesuai sidebarkey
  */
 watch(
-  () => route.path,
-  (path) => {
+  () => route.meta?.sidebarKey,
+  (key) => {
     if (!props.item.children) return;
 
-    isOpen.value = props.item.children.some((child) => child.path === path);
+    isOpen.value = key === props.item.sidebarKey;
   },
   { immediate: true },
 );
