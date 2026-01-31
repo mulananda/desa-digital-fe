@@ -103,21 +103,6 @@ onBeforeUnmount(() => {
 });
 
 /* =====================
- * Delete Handler
- * ===================== */
-// const handleDelete = async (id) => {
-//   const success = await store.deleteHeadOfFamily(id);
-//   if (!success) return;
-
-//   const isLastItem = headOfFamilies.value.length === 0;
-//   if (isLastItem && pagination.value.page > 1) {
-//     pagination.value.page--;
-//   } else {
-//     fetchData();
-//   }
-// };
-
-/* =====================
  * Empty State
  * ===================== */
 const emptyStateConfig = computed(() => ({
