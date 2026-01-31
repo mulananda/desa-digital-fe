@@ -70,24 +70,54 @@ export const useSocialAssistanceStore = defineStore("social-assistance", {
       }
     },
 
-    // async fetchHeadOfFamily(id) {
-    //   if (!id) throw new Error("ID tidak valid");
+    async fetchSocialAssistance(id) {
+      if (!id) throw new Error("ID tidak valid");
 
-    //   this.loading = true;
-    //   this.error = null;
+      this.loading = true;
+      this.error = null;
 
-    //   try {
-    //     const response = await axiosInstance.get(`/head-of-family/${id}`);
-    //     return response.data.data;
-    //   } catch (error) {
-    //     this.error = errorHandlerService.handle(error, {
-    //       context: "HeadOfFamily",
-    //       showNotification: true,
-    //     });
-    //   } finally {
-    //     this.loading = false;
-    //   }
-    // },
+      try {
+        const response = await axiosInstance.get(`/social-assistance/${id}`);
+        return response.data.data;
+      } catch (error) {
+        this.error = errorHandlerService.handle(error, {
+          context: "SocialAssistance",
+          showNotification: true,
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateSocialAssistance(payload) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await axiosInstance.post(
+          `/social-assistance/${payload.id}`,
+          {
+            ...payload,
+            _method: "PUT",
+          },
+        );
+
+        notificationService.success(
+          response.data.message || "Bantuan Sosial Berhasil Diupdate",
+          "Berhasil",
+        );
+
+        return true;
+      } catch (error) {
+        this.error = errorHandlerService.handle(error, {
+          context: "SocialAssistance-update",
+          showNotification: true,
+        });
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
 
     // async createHeadOfFamily(payload) {
     //   this.loading = true;
@@ -112,40 +142,40 @@ export const useSocialAssistanceStore = defineStore("social-assistance", {
     //   }
     // },
 
-    // async deleteHeadOfFamily(id) {
-    //   if (!id) {
-    //     notificationService.error("ID tidak valid", "Gagal Menghapus");
-    //     return false;
-    //   }
+    async deleteSocialAssistance(id) {
+      if (!id) {
+        notificationService.error("ID tidak valid", "Gagal Menghapus");
+        return false;
+      }
 
-    //   this.loading = true;
-    //   this.error = null;
+      this.loading = true;
+      this.error = null;
 
-    //   try {
-    //     const response = await axiosInstance.delete(`/head-of-family/${id}`);
+      try {
+        const response = await axiosInstance.delete(`/social-assistance/${id}`);
 
-    //     this.socialAssistances = this.socialAssistances.filter(
-    //       (item) => item.id !== id,
-    //     );
+        this.socialAssistances = this.socialAssistances.filter(
+          (item) => item.id !== id,
+        );
 
-    //     if (this.meta.total > 0) this.meta.total--;
+        if (this.meta.total > 0) this.meta.total--;
 
-    //     notificationService.success(
-    //       response.data.message || "Kepala Keluarga Berhasil Dihapus",
-    //       "Berhasil",
-    //     );
+        notificationService.success(
+          response.data.message || "Bantuan Sosial Berhasil Dihapus",
+          "Berhasil",
+        );
 
-    //     return true;
-    //   } catch (error) {
-    //     this.error = errorHandlerService.handle(error, {
-    //       context: "HeadOfFamily",
-    //       showNotification: true,
-    //     });
-    //     return false;
-    //   } finally {
-    //     this.loading = false;
-    //   }
-    // },
+        return true;
+      } catch (error) {
+        this.error = errorHandlerService.handle(error, {
+          context: "SocialAssistance",
+          showNotification: true,
+        });
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
 
     resetState() {
       this.socialAssistances = [];

@@ -1,276 +1,300 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { storeToRefs } from "pinia";
-import { debounce } from "lodash";
-
 import { useSocialAssistanceStore } from "@/stores/socialAssistance";
-import CardList from "@/components/social-assistance/CardList.vue";
-import Pagination from "@/components/ui/Pagination.vue";
+import { storeToRefs } from "pinia";
+import { onMounted, computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
-/* =====================
- * Setup
- * ===================== */
-const router = useRouter();
+// components
+import ModalDelete from "@/components/ui/ModalDelete.vue";
+import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
+
 const route = useRoute();
-const store = useSocialAssistanceStore();
-const { socialAssistances, meta, loading, error } = storeToRefs(store);
+const router = useRouter();
 
-/* =====================
- * State
- * ===================== */
-const pagination = ref({
-  page: Number(route.query.page) || 1,
-  perPage: Number(route.query.per_page) || 10,
-});
+const socialAssistanceStore = useSocialAssistanceStore();
+const { loading } = storeToRefs(socialAssistanceStore);
+const { fetchSocialAssistance, deleteSocialAssistance } = socialAssistanceStore;
 
-const filters = ref({
-  search: route.query.search || "",
-});
+const socialAssistance = ref({});
+const showModalDelete = ref(false);
 
-/* =====================
- * Query Params Builder
- * ===================== */
-const queryParams = computed(() => {
-  const params = {
-    page: Math.max(1, pagination.value.page),
-    row_per_page: pagination.value.perPage,
-  };
+// ID dari route
+const socialAssistanceId = computed(() => route.params.id);
 
-  if (filters.value.search?.trim()) {
-    params.search = filters.value.search.trim();
-  }
+// loading khusus delete
+const isDeleting = computed(() => loading.value);
 
-  return params;
-});
-
-/* =====================
- * URL Sync
- * ===================== */
-const syncUrl = () => {
-  router.replace({
-    query: {
-      page: pagination.value.page,
-      per_page: pagination.value.perPage,
-      ...(filters.value.search && { search: filters.value.search }),
-    },
-  });
-};
-
-/* =====================
- * Fetch Data
- * ===================== */
+// fetch data
 const fetchData = async () => {
-  syncUrl();
-  const result = await store.fetchSocialAssistancesPaginated(queryParams.value);
-
-  if (
-    result &&
-    pagination.value.page > meta.value.last_page &&
-    meta.value.last_page > 0
-  ) {
-    pagination.value.page = meta.value.last_page;
+  try {
+    socialAssistance.value = await fetchSocialAssistance(
+      socialAssistanceId.value,
+    );
+  } catch {
+    // optional: redirect / fallback
   }
 };
 
-/* =====================
- * Debounced Search
- * ===================== */
-const debouncedSearch = debounce(() => {
-  pagination.value.page = 1;
-  fetchData();
-}, 500);
+onMounted(fetchData);
 
-/* =====================
- * Watchers
- * ===================== */
-watch(() => [pagination.value.page, pagination.value.perPage], fetchData, {
-  immediate: true,
-});
+// delete handler
+async function handleDelete() {
+  if (!socialAssistanceId.value) return;
 
-watch(
-  () => filters.value.search,
-  () => debouncedSearch(),
-);
-
-/* =====================
- * Cleanup
- * ===================== */
-onBeforeUnmount(() => {
-  debouncedSearch.cancel();
-  store.cancelOngoingRequest?.();
-});
-
-/* =====================
- * Delete Handler
- * ===================== */
-// const handleDelete = async (id) => {
-//   const success = await store.deleteHeadOfFamily(id);
-//   if (!success) return;
-
-//   const isLastItem = headOfFamilies.value.length === 0;
-//   if (isLastItem && pagination.value.page > 1) {
-//     pagination.value.page--;
-//   } else {
-//     fetchData();
-//   }
-// };
-
-/* =====================
- * Empty State
- * ===================== */
-const emptyStateConfig = computed(() => ({
-  message: filters.value.search
-    ? "Tidak ada hasil pencarian"
-    : "Belum ada data kepala rumah",
-  description: filters.value.search
-    ? "Coba kata kunci lain atau hapus filter"
-    : null,
-  icon: "user-search-secondary-green.svg",
-}));
+  try {
+    await deleteSocialAssistance(socialAssistanceId.value);
+    showModalDelete.value = false;
+    await router.push({ name: ROUTE_NAMES.SOCIAL_ASSISTANCE });
+  } catch {
+    showModalDelete.value = false;
+  }
+}
 </script>
+
 <template>
   <div id="Header" class="flex items-center justify-between">
-    <h1 class="font-semibold text-2xl">List Bantuan Sosial</h1>
-    <a
-      href="kd-bantuan-sosial-add.html"
-      class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green"
-    >
-      <img
-        src="@/assets/images/icons/add-square-white.svg"
-        class="flex size-6 shrink-0"
-        alt="icon"
-      />
-      <p class="font-medium text-white">Add New</p>
-    </a>
-  </div>
-  <section id="List-Bantuan-Sosial" class="flex flex-col gap-[14px]">
-    <form
-      id="Page-Search"
-      class="flex items-center justify-between"
-      @submit.prevent
-    >
-      <div class="flex flex-col gap-3 w-[370px] shrink-0">
-        <label class="relative group peer w-full valid">
-          <input
-            v-model="filters.search"
-            type="text"
-            placeholder="Cari nama bantuan social"
-            class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 pl-12 pr-6 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300"
-          />
-          <div
-            class="absolute transform -translate-y-1/2 top-1/2 left-4 flex size-6 shrink-0"
-          >
-            <img
-              src="@/assets/images/icons/receipt-search-secondary-green.svg"
-              class="size-6 hidden group-has-[:placeholder-shown]:flex"
-              alt="icon"
-            />
-            <img
-              src="@/assets/images/icons/receipt-search-black.svg"
-              class="size-6 flex group-has-[:placeholder-shown]:hidden"
-              alt="icon"
-            />
-          </div>
-        </label>
+    <div class="flex flex-col gap-2">
+      <div class="flex gap-1 items-center leading-5 text-desa-secondary">
+        <p
+          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
+        >
+          Bantuan sosial
+        </p>
+        <span>/</span>
+        <p
+          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
+        >
+          Manage bantuan sosial
+        </p>
       </div>
-      <div class="options flex items-center gap-4">
-        <div class="flex items-center gap-[10px]">
-          <span class="font-medium leading-5">Show</span>
-          <div class="relative">
-            <select
-              v-model.number="pagination.perPage"
-              class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-6 pr-[52px] font-medium transition-all duration-300"
-            >
-              <option :value="5">5 Entries</option>
-              <option :value="10">10 Entries</option>
-              <option :value="20">20 Entries</option>
-              <option :value="30">30 Entries</option>
-              <option :value="40">40 Entries</option>
-              <option :value="50">50 Entries</option>
-            </select>
-            <img
-              src="@/assets/images/icons/arrow-down-black.svg"
-              class="flex size-6 shrink-0 absolute transform -translate-y-1/2 top-1/2 right-6 pointer-events-none"
-              alt="icon"
-            />
-          </div>
-        </div>
-        <button
-          type="button"
-          class="flex items-center gap-1 h-14 w-fit rounded-2xl border border-desa-background bg-white py-4 px-6"
+      <h1 class="font-semibold text-2xl">Manage Bantuan Sosial</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        data-modal="Modal-Delete"
+        class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
+        @click="showModalDelete = true"
+      >
+        <p class="font-medium text-white">Hapus Data</p>
+        <img
+          src="@/assets/images/icons/trash-white.svg"
+          class="flex size-6 shrink-0"
+          alt="icon"
+        />
+      </button>
+      <RouterLink
+        :to="{
+          name: ROUTE_NAMES.EDIT_SOCIAL_ASSISTANCE,
+          params: { id: socialAssistance.id },
+        }"
+        class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
+      >
+        <p class="font-medium text-white">Ubah Data</p>
+        <img
+          src="@/assets/images/icons/edit-white.svg"
+          class="flex size-6 shrink-0"
+          alt="icon"
+        />
+      </RouterLink>
+    </div>
+  </div>
+  <div class="flex gap-[14px]">
+    <section
+      id="Informasi-Bantuan-Sosial"
+      class="flex flex-col shrink-0 w-[calc(545/1000*100%)] h-fit rounded-3xl p-6 gap-6 bg-white"
+    >
+      <p class="font-medium leading-5 text-desa-secondary">
+        Informasi Bantuan Sosial
+      </p>
+      <div class="flex items-center justify-between gap-4">
+        <div
+          class="flex w-[120px] h-[100px] shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
         >
           <img
-            src="@/assets/images/icons/filter-black.svg"
+            :src="socialAssistance.thumbnail"
+            class="w-full h-full object-cover"
+            alt="photo"
+          />
+        </div>
+        <div
+          class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-soft-green"
+          v-if="socialAssistance.is_available"
+        >
+          <span class="font-semibold text-xs text-white uppercase"
+            >Tersedia</span
+          >
+        </div>
+        <div
+          class="badge rounded-full p-3 gap-2 flex justify-center shrink-0 bg-desa-red"
+          v-if="!socialAssistance.is_available"
+        >
+          <span class="font-semibold text-xs text-white uppercase"
+            >Tidak Tersedia</span
+          >
+        </div>
+      </div>
+      <div class="flex flex-col gap-[6px] w-full">
+        <p class="font-semibold text-xl">{{ socialAssistance.name }}</p>
+        <p class="flex items-center gap-1">
+          <img
+            src="@/assets/images/icons/profile-secondary-green.svg"
+            class="flex size-[18px] shrink-0"
+            alt="icon"
+          />
+          <span class="font-medium text-sm text-desa-secondary">{{
+            socialAssistance.provider
+          }}</span>
+        </p>
+      </div>
+      <hr class="border-desa-foreshadow" />
+      <div class="flex items-center w-full gap-3">
+        <div
+          class="flex size-[52px] shrink-0 rounded-2xl bg-desa-foreshadow items-center justify-center"
+        >
+          <img
+            src="@/assets/images/icons/money-dark-green.svg"
             class="flex size-6 shrink-0"
             alt="icon"
           />
-          <span class="font-medium leading-5">Filter</span>
-        </button>
+        </div>
+        <div class="flex flex-col gap-1 w-full">
+          <p
+            class="font-semibold text-lg leading-[22.5px] text-desa-dark-green"
+          >
+            Rp.{{ formatRupiah(socialAssistance.amount) }}
+          </p>
+          <span class="font-medium text-desa-secondary"> Uang Tunai </span>
+        </div>
       </div>
-    </form>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center py-12">
-      <div class="flex flex-col items-center gap-3">
+      <hr class="border-desa-foreshadow" />
+      <div class="flex items-center w-full gap-3">
         <div
-          class="animate-spin rounded-full h-10 w-10 border-b-2 border-desa-dark-green"
-        ></div>
-        <p class="text-desa-secondary">Memuat data...</p>
-      </div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="flex justify-center py-12">
-      <div class="flex flex-col items-center gap-3 max-w-md text-center">
-        <div class="text-red-500 text-4xl mb-2">⚠️</div>
-        <p class="text-red-500 font-medium">Terjadi kesalahan</p>
-        <p class="text-desa-secondary text-sm">{{ error }}</p>
-        <button
-          @click="fetchData"
-          class="px-4 py-2 bg-desa-dark-green text-white rounded-lg hover:bg-desa-dark-green/90 transition-colors"
+          class="flex size-[52px] shrink-0 rounded-2xl bg-desa-blue/10 items-center justify-center"
         >
-          Coba Lagi
-        </button>
+          <img
+            src="@/assets/images/icons/profile-2user-blue.svg"
+            class="flex size-6 shrink-0"
+            alt="icon"
+          />
+        </div>
+        <div class="flex flex-col gap-1 w-full">
+          <p class="font-semibold text-lg leading-[22.5px] text-desa-blue">
+            {{ socialAssistance.social_assistance_recipients_count || 0 }} Warga
+          </p>
+          <span class="font-medium text-desa-secondary"> Total Pengajuan </span>
+        </div>
       </div>
-    </div>
-    <!-- Data List -->
-    <template v-else-if="socialAssistances?.length > 0">
-      <CardList
-        v-for="socialAssistance in socialAssistances"
-        :key="socialAssistance.id"
-        :item="socialAssistance"
-      />
-
-      <!-- Pagination Component -->
-      <Pagination
-        v-if="meta.total > 0"
-        :meta="meta"
-        :current-page="pagination.page"
-        class="mt-4"
-        @update:page="pagination.page = $event"
-      />
-    </template>
-
-    <!-- Empty State -->
-    <div v-else class="flex justify-center py-12">
-      <div class="flex flex-col items-center gap-3">
-        <img
-          :src="`@/assets/images/icons/${emptyStateConfig.icon}`"
-          class="size-16 opacity-50"
-          alt="icon"
-        />
-        <p class="text-desa-secondary font-medium">
-          {{ emptyStateConfig.message }}
-        </p>
-        <p
-          v-if="emptyStateConfig.description"
-          class="text-desa-secondary text-sm"
-        >
-          {{ emptyStateConfig.description }}
+      <hr class="border-desa-foreshadow" />
+      <div class="flex flex-col gap-3">
+        <p class="font-medium text-sm text-desa-secondary">Tentang Bantuan</p>
+        <p class="font-medium leading-8">
+          {{ socialAssistance.description }}
         </p>
       </div>
-    </div>
-  </section>
+    </section>
+    <section
+      id="Penerima-Bansos-Terakhir"
+      class="flex flex-col flex-1 h-fit shrink-0 rounded-3xl p-6 gap-6 bg-white"
+    >
+      <p class="font-medium leading-5 text-desa-secondary">
+        Penerima Bansos Terakhir
+      </p>
+      <div id="List-Bansos-Terkahir" class="flex flex-col gap-6">
+        <div
+          class="card flex flex-col rounded-2xl border border-desa-background p-4 gap-4"
+          v-for="recipient in socialAssistance.social_assistance_recipients"
+          :key="recipient.id"
+        >
+          <div class="flex items-center justify-between">
+            <p class="font-medium text-sm text-desa-secondary">
+              {{ formatToClientTimezone(recipient.created_at) }}
+            </p>
+            <img
+              src="@/assets/images/icons/calendar-2-secondary-green.svg"
+              class="flex size-[18px] shrink-0"
+              alt="icon"
+            />
+          </div>
+          <hr class="border-desa-background" />
+          <div class="flex items-center gap-3">
+            <div class="flex flex-col gap-[6px] w-full">
+              <p class="font-semibold text-lg leading-5">
+                Rp{{ formatRupiah(recipient.amount) }}
+              </p>
+              <p class="font-medium text-sm text-desa-secondary">
+                Nominal Pengajuan
+              </p>
+            </div>
+            <div
+              class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-yellow"
+              v-if="recipient.status === 'pending'"
+            >
+              <span class="font-semibold text-xs text-white uppercase"
+                >Menunggu</span
+              >
+            </div>
+            <div
+              class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-green"
+              v-if="recipient.status === 'approved'"
+            >
+              <span class="font-semibold text-xs text-white uppercase"
+                >Disetujui</span
+              >
+            </div>
+            <div
+              class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-red"
+              v-if="recipient.status === 'rejected'"
+            >
+              <span class="font-semibold text-xs text-white uppercase"
+                >Ditolak</span
+              >
+            </div>
+          </div>
+          <hr class="border-desa-background" />
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-0.5">
+              <img
+                src="@/assets/images/icons/profile-secondary-green.svg"
+                class="flex size-[18px] shrink-0"
+                alt="icon"
+              />
+              <p class="font-medium text-sm text-desa-secondary">
+                Diberikan Kepada:
+              </p>
+            </div>
+            <div class="flex items-center gap-1">
+              <p class="font-medium leading-5">
+                {{ recipient.head_of_family_id.user?.name }}
+              </p>
+              <div
+                class="flex size-8 shrink-0 rounded-full bg-desa-foreshadow overflow-hidden"
+              >
+                <img
+                  :src="recipient.head_of_family_id?.profile_picture"
+                  class="w-full h-full object-cover"
+                  alt="photo"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="#"
+          class="flex items-center justify-center h-14 rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green"
+        >
+          <span class="font-medium leading-5 text-white">View All</span>
+        </a>
+      </div>
+    </section>
+  </div>
+  <ModalDelete
+    v-model="showModalDelete"
+    title="Hapus Bantuan Sosial?"
+    description="Tindakan ini permanen dan tidak bisa dibatalkan!"
+    :loading="isDeleting"
+    confirm-text="Iya Hapus"
+    @confirm="handleDelete"
+  />
 </template>

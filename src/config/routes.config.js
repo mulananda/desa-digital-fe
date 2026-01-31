@@ -9,6 +9,7 @@ export const ROUTE_NAMES = {
   CREATE_HEAD_OF_FAMILY: "create-head-of-family",
   SOCIAL_ASSISTANCE: "social-assistance",
   MANAGE_SOCIAL_ASSISTANCE: "manage-social-assistance",
+  EDIT_SOCIAL_ASSISTANCE: "edit-social-assistance",
 };
 
 export const ROUTE_PATHS = {
@@ -20,6 +21,7 @@ export const ROUTE_PATHS = {
   CREATE_HEAD_OF_FAMILY: "/head-of-family/create",
   SOCIAL_ASSISTANCE: "/social-assistance",
   ID_SOCIAL_ASSISTANCE: "/social-assistance/:id",
+  EDIT_SOCIAL_ASSISTANCE: "/social-assistance/edit/:id",
 };
 
 // untuk aktif sidebar
