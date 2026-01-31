@@ -1,3 +1,4 @@
+<!-- src/component/ui/input.vue -->
 <script setup>
 const model = defineModel({
   type: String,
