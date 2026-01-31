@@ -1,0 +1,9 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- square -->
+  <rect x="2" y="2" width="20" height="20" rx="6" stroke="#7DBFA8" stroke-width="1.5"></rect>
+
+  <!-- Rp text -->
+  <text x="12" y="15" text-anchor="middle" font-size="9.5" font-weight="600" font-family="Inter, system-ui, sans-serif" fill="#7DBFA8">
+    Rp
+  </text>
+</svg>
