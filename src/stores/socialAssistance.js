@@ -119,28 +119,31 @@ export const useSocialAssistanceStore = defineStore("social-assistance", {
       }
     },
 
-    // async createHeadOfFamily(payload) {
-    //   this.loading = true;
-    //   this.error = null;
+    async createSocialAssistance(payload) {
+      this.loading = true;
+      this.error = null;
 
-    //   try {
-    //     const response = await axiosInstance.post("/head-of-family", payload);
+      try {
+        const response = await axiosInstance.post(
+          "/social-assistance",
+          payload,
+        );
 
-    //     notificationService.success(
-    //       response.data.message || "Kepala Keluarga Berhasil Dibuat",
-    //       "Berhasil",
-    //     );
+        notificationService.success(
+          response.data.message || "Bantuan Sosial Berhasil Dibuat",
+          "Berhasil",
+        );
 
-    //     return true;
-    //   } catch (error) {
-    //     this.error = errorHandlerService.handle(error, {
-    //       context: "HeadOfFamily",
-    //     });
-    //     return false;
-    //   } finally {
-    //     this.loading = false;
-    //   }
-    // },
+        return true;
+      } catch (error) {
+        this.error = errorHandlerService.handle(error, {
+          context: "CreateSocialAssistance",
+        });
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
 
     async deleteSocialAssistance(id) {
       if (!id) {

@@ -133,8 +133,8 @@ const emptyStateConfig = computed(() => ({
 <template>
   <div id="Header" class="flex items-center justify-between">
     <h1 class="font-semibold text-2xl">List Bantuan Sosial</h1>
-    <a
-      href="kd-bantuan-sosial-add.html"
+    <RouterLink
+      :to="{ name: ROUTE_NAMES.CREATE_SOCIAL_ASSISTANCE }"
       class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green"
     >
       <img
@@ -143,7 +143,7 @@ const emptyStateConfig = computed(() => ({
         alt="icon"
       />
       <p class="font-medium text-white">Add New</p>
-    </a>
+    </RouterLink>
   </div>
   <section id="List-Bantuan-Sosial" class="flex flex-col gap-[14px]">
     <form
