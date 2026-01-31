@@ -8,6 +8,7 @@ import { ROUTE_NAMES } from "@/config/routes.config";
 
 // components
 import ModalDelete from "@/components/ui/ModalDelete.vue";
+import { calculateAge } from "@/helpers/calculateAge";
 
 const route = useRoute();
 const router = useRouter();
@@ -47,20 +48,6 @@ async function handleDelete() {
   } catch {
     showModalDelete.value = false;
   }
-}
-
-// util
-function calculateAge(birthDate) {
-  const today = new Date();
-  const birth = new Date(birthDate);
-  if (isNaN(birth.getTime())) return null;
-
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  const d = today.getDate() - birth.getDate();
-
-  if (m < 0 || (m === 0 && d < 0)) age--;
-  return age;
 }
 </script>
 

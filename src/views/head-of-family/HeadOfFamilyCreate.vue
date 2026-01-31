@@ -13,7 +13,7 @@ import Button from "@/components/ui/Button.vue";
 import { ROUTE_NAMES } from "@/config/routes.config";
 import { scrollToFirstError } from "@/utils/scrollToFirstError";
 
-import { useAge } from "@/composables/usaAge";
+import { useAge } from "@/composables/useAge";
 
 /* assets */
 import defaultPhoto from "@/assets/images/photos/kk-preview.png";
@@ -59,7 +59,7 @@ const headOfFamily = ref({
 /* =========================
  * COMPOSABLE
  * ========================= */
-const { age } = useAge(computed(() => headOfFamily.value.date_of_birth));
+const { age } = useAge(computed(() => headOfFamily.value?.date_of_birth));
 
 /* =========================
  * REFS
@@ -281,7 +281,9 @@ const handleSubmit = async () => {
             class="w-[180px] flex shrink-0 h-[52px] rounded-2xl bg-desa-foreshadow p-4 font-medium leading-5 text-desa-dark-green justify-center"
           >
             <p>
-              Umur: <span id="Age">{{ age }}</span> tahun
+              Umur:
+              <span id="Age">{{ age }}</span>
+              tahun
             </p>
           </div>
         </div>
@@ -443,45 +445,7 @@ const handleSubmit = async () => {
               required
               :error-message="error?.email"
             />
-            <!-- <input
-              type="email"
-              placeholder="Masukan Email"
-              class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-12 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300 group-[.invalid]:input-invalid-state"
-            />
-            <div
-              class="absolute transform -translate-y-1/2 top-1/2 left-4 flex size-6 shrink-0"
-            >
-              <img
-                src="@/assets/images/icons/sms-secondary-green.svg"
-                class="size-6 hidden group-has-[:placeholder-shown]:flex group-[.invalid]:!hidden"
-                alt="icon"
-              />
-              <img
-                src="@/assets/images/icons/sms-black.svg"
-                class="size-6 flex group-has-[:placeholder-shown]:hidden group-[.invalid]:hidden"
-                alt="icon"
-              />
-              <img
-                src="@/assets/images/icons/sms-red.svg"
-                class="size-6 hidden group-[.invalid]:flex"
-                alt="icon"
-              />
-            </div>
-            <img
-              src="@/assets/images/icons/Checklist-dark-green-fill.svg"
-              class="absolute transform -translate-y-1/2 top-1/2 right-4 size-6 shrink-0 hidden group-[.valid]:flex"
-              alt="icon"
-            />
-            <img
-              src="@/assets/images/icons/close-circle-red-fill.svg"
-              class="absolute transform -translate-y-1/2 top-1/2 right-4 size-6 shrink-0 hidden group-[.invalid]:flex"
-              alt="icon"
-            /> -->
           </label>
-          <!-- <span
-            class="font-medium text-sm text-desa-red hidden peer-[.invalid]:block"
-            >Email sudah digunakan</span
-          > -->
         </div>
       </section>
       <hr class="border-desa-background" />
@@ -504,25 +468,6 @@ const handleSubmit = async () => {
               required
               :error-message="error?.password"
             />
-            <!-- <input
-              type="password"
-              placeholder="Masukan Password"
-              class="appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-12 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300 tracking-[4px] placeholder:tracking-normal"
-            />
-            <div
-              class="absolute transform -translate-y-1/2 top-1/2 left-4 flex size-6 shrink-0"
-            >
-              <img
-                src="@/assets/images/icons/key-secondary-green.svg"
-                class="size-6 hidden group-has-[:placeholder-shown]:flex"
-                alt="icon"
-              />
-              <img
-                src="@/assets/images/icons/key-black.svg"
-                class="size-6 flex group-has-[:placeholder-shown]:hidden"
-                alt="icon"
-              />
-            </div> -->
           </label>
         </div>
       </section>
