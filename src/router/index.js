@@ -20,6 +20,7 @@ import SocialAssistance from "@/views/social-assistance/SocialAssistance.vue";
 import SocialAssistanceEdit from "@/views/social-assistance/SocialAssistanceEdit.vue";
 import SocialAssistanceCreate from "@/views/social-assistance/SocialAssistanceCreate.vue";
 import SocialAssistanceRecipients from "@/views/social-assistane-recipient/SocialAssistanceRecipients.vue";
+import SocialAssistanceRecipient from "@/views/social-assistane-recipient/SocialAssistanceRecipient.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -114,6 +115,16 @@ const router = createRouter({
           path: ROUTE_PATHS.SOCIAL_ASSISTANCE_RECIPIENT,
           name: ROUTE_NAMES.SOCIAL_ASSISTANCE_RECIPIENT,
           component: SocialAssistanceRecipients,
+          meta: {
+            requiresAuth: true,
+            permission: "social-assistance-recipient-list",
+            sidebarKey: SIDEBAR_KEYS.SOCIAL_ASSISTANCE_RECIPIENT,
+          },
+        },
+        {
+          path: ROUTE_PATHS.ID_SOCIAL_ASSISTANCE_RECIPIENT,
+          name: ROUTE_NAMES.MANAGE_SOCIAL_ASSISTANCE_RECIPIENT,
+          component: SocialAssistanceRecipient,
           meta: {
             requiresAuth: true,
             permission: "social-assistance-recipient-list",
