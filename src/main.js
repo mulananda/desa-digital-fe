@@ -1,3 +1,4 @@
+// src/main.js
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { VueQueryPlugin, QueryClient } from "@tanstack/vue-query";
@@ -21,9 +22,10 @@ import "notivue/animations.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 30_000, // ⬅️ Data dianggap fresh selama 30 detik
+      gcTime: 5 * 60_000, // v5 (pengganti cacheTime) waktu 5 Menit
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 1000 * 60, // 1 menit
     },
   },
 });
