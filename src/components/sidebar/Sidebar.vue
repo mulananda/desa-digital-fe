@@ -36,6 +36,11 @@ const sidebarItems = [
         path: ROUTE_PATHS.SOCIAL_ASSISTANCE,
         sidebarKey: SIDEBAR_KEYS.SOCIAL_ASSISTANCE,
       },
+      {
+        label: "Pengajuan Bansos",
+        path: ROUTE_PATHS.SOCIAL_ASSISTANCE_RECIPIENT,
+        sidebarKey: SIDEBAR_KEYS.SOCIAL_ASSISTANCE_RECIPIENT,
+      },
     ],
   },
 ];

@@ -27,27 +27,37 @@ const isActive = computed(() => {
 });
 
 /**
- * ACTIVE STATE UNTUK PARENT
+ * 🆕 CEK APAKAH ADA CHILD YANG AKTIF
+ */
+const isChildActive = () => {
+  if (!props.item.children) return false;
+
+  return props.item.children.some(
+    (child) => child.sidebarKey === route.meta?.sidebarKey,
+  );
+};
+
+/**
+ * 🔧 ACTIVE STATE UNTUK PARENT
  * aktif jika:
- * - dirinya aktif
  * - salah satu child aktif
  */
 const isParentActive = computed(() => {
   if (!props.item.children) return isActive.value;
 
-  return route.meta?.sidebarKey === props.item.sidebarKey;
+  return isChildActive();
 });
 
 /**
- * WATCH ROUTE
- * auto buka / tutup accordion sesuai sidebarkey
+ * 🔧 WATCH ROUTE
+ * auto buka accordion jika salah satu child aktif
  */
 watch(
   () => route.meta?.sidebarKey,
-  (key) => {
+  () => {
     if (!props.item.children) return;
 
-    isOpen.value = key === props.item.sidebarKey;
+    isOpen.value = isChildActive();
   },
   { immediate: true },
 );
