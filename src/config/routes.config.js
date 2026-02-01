@@ -24,8 +24,8 @@ export const ROUTE_PATHS = {
   SOCIAL_ASSISTANCE: "/social-assistance",
   ID_SOCIAL_ASSISTANCE: "/social-assistance/:id",
   EDIT_SOCIAL_ASSISTANCE: "/social-assistance/edit/:id",
-  CREATE_SOCIAL_ASSISTANCE: "social-assistance/create",
-  SOCIAL_ASSISTANCE_RECIPIENT: "social-assistance-recipient",
+  CREATE_SOCIAL_ASSISTANCE: "/social-assistance/create",
+  SOCIAL_ASSISTANCE_RECIPIENT: "/social-assistance-recipient",
 };
 
 // untuk aktif sidebar
