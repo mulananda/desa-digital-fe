@@ -13,6 +13,7 @@ export const ROUTE_NAMES = {
   CREATE_SOCIAL_ASSISTANCE: "create-social-assistance",
   SOCIAL_ASSISTANCE_RECIPIENT: "social-assistance-recipient",
   MANAGE_SOCIAL_ASSISTANCE_RECIPIENT: "manage-social-assistance-recipient",
+  DEVELOPMENT: "development",
 };
 
 export const ROUTE_PATHS = {
@@ -28,6 +29,7 @@ export const ROUTE_PATHS = {
   CREATE_SOCIAL_ASSISTANCE: "/social-assistance/create",
   SOCIAL_ASSISTANCE_RECIPIENT: "/social-assistance-recipient",
   ID_SOCIAL_ASSISTANCE_RECIPIENT: "/social-assistance-recipient/:id",
+  DEVELOPMENT: "/development",
 };
 
 // untuk aktif sidebar
@@ -36,4 +38,5 @@ export const SIDEBAR_KEYS = {
   HEAD_OF_FAMILY: "head-of-family",
   SOCIAL_ASSISTANCE: "social-assistance",
   SOCIAL_ASSISTANCE_RECIPIENT: "social-assistance-recipient",
+  DEVELOPMENT: "development",
 };

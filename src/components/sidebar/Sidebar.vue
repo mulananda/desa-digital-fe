@@ -43,6 +43,20 @@ const sidebarItems = [
       },
     ],
   },
+  {
+    label: "Jadwal Desa",
+    path: "",
+    sidebarKey: SIDEBAR_KEYS.DEVELOPMENT,
+    iconActive: iconBagActive,
+    iconInActive: iconBagInactive,
+    children: [
+      {
+        label: "Pembangunan",
+        path: ROUTE_PATHS.DEVELOPMENT,
+        sidebarKey: SIDEBAR_KEYS.DEVELOPMENT,
+      },
+    ],
+  },
 ];
 </script>
 
