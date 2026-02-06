@@ -35,6 +35,8 @@ import IconGasDark from "@/assets/images/icons/gas-station-dark-green.svg";
 import IconHealthSecondary from "@/assets/images/icons/health-secondary-green.svg";
 import IconHealthDark from "@/assets/images/icons/health-secondary-green.svg";
 
+import defaultPhoto from "@/assets/images/thumbnails/thumbnail-bansos-preview.svg";
+
 /* =========================
  * ROUTER & STORE
  * ========================= */
@@ -173,7 +175,11 @@ async function handleSubmit() {
           >
             <img
               id="Photo"
-              :src="socialAssistance.thumbnail_url"
+              :src="
+                socialAssistance.thumbnail_url
+                  ? socialAssistance.thumbnail_url
+                  : defaultPhoto
+              "
               alt="image"
               class="size-full object-cover"
             />

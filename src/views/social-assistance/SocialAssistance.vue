@@ -54,6 +54,10 @@ async function handleDelete() {
 
 <template>
   <div id="Header" class="flex items-center justify-between">
+    <!-- LOADING -->
+    <div v-if="loading" class="p-4">
+      <p>Loading data...</p>
+    </div>
     <div class="flex flex-col gap-2">
       <div class="flex gap-1 items-center leading-5 text-desa-secondary">
         <p
@@ -112,7 +116,7 @@ async function handleDelete() {
           class="flex w-[120px] h-[100px] shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
         >
           <img
-            :src="socialAssistance.thumbnail"
+            :src="socialAssistance?.thumbnail"
             class="w-full h-full object-cover"
             alt="photo"
           />
@@ -265,13 +269,13 @@ async function handleDelete() {
             </div>
             <div class="flex items-center gap-1">
               <p class="font-medium leading-5">
-                {{ recipient.head_of_family_id.user?.name }}
+                {{ recipient.head_of_family.user?.name }}
               </p>
               <div
                 class="flex size-8 shrink-0 rounded-full bg-desa-foreshadow overflow-hidden"
               >
                 <img
-                  :src="recipient.head_of_family_id?.profile_picture"
+                  :src="recipient.head_of_family?.profile_picture"
                   class="w-full h-full object-cover"
                   alt="photo"
                 />
