@@ -5,7 +5,6 @@ import router from "@/router";
 import { tokenService } from "@/services/token.service"; // ✅ Added
 import { API_CONFIG, HTTP_STATUS } from "@/utils/constants";
 import { notificationService } from "@/services/notification.service";
-import { ERROR_MESSAGES } from "@/config/messages.config";
 import { ROUTE_NAMES } from "@/config/routes.config";
 import { logger } from "@/utils/helpers";
 
@@ -61,11 +60,6 @@ axiosInstance.interceptors.response.use(
     if (status === HTTP_STATUS.FORBIDDEN) {
       handleForbidden();
       return Promise.reject(new Error("Access forbidden"));
-    }
-
-    // Set generic network error message
-    if (!response) {
-      error.message = ERROR_MESSAGES.NETWORK;
     }
 
     return Promise.reject(error);
