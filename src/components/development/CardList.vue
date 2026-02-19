@@ -1,13 +1,57 @@
-<script setup>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import { ROUTE_NAMES } from "@/config/routes.config";
 import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
+import { validateImageUrl, sanitizeAttribute } from "@/utils/sanitization";
+import type { Development } from "@/types/development.type";
+import ModalDelete from "../ui/ModalDelete.vue";
+import { nextTick } from "vue";
+import { useDeleteDevelopment } from "@/composables/development/useDeleteDevelopment";
 
-const props = defineProps({
-  item: {
-    type: Object,
-    required: true,
-  },
+const DEFAULT_THUMBNAIL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+
+const props = defineProps<{
+  item: Development;
+}>();
+
+const showModalDelete = ref(false);
+
+const { deleteDevelopment, isDeleting } = useDeleteDevelopment();
+
+// ✅ NEW: Safe image URL validation
+const safeImageUrl = computed(() => {
+  if (!props.item?.thumbnail) {
+    return DEFAULT_THUMBNAIL;
+  }
+  return validateImageUrl(props.item.thumbnail)
+    ? props.item.thumbnail
+    : DEFAULT_THUMBNAIL;
 });
+
+// ✅ NEW: Safe attribute sanitization
+const safeName = computed(() => sanitizeAttribute(props.item?.name || ""));
+const safePersonInCharge = computed(() =>
+  sanitizeAttribute(props.item?.person_in_charge || ""),
+);
+
+// ✅ NEW: Image error fallback handler
+const handleImageError = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  img.src = DEFAULT_THUMBNAIL;
+};
+
+// delete handler
+async function handleDelete() {
+  if (!props.item.id) return;
+  try {
+    await deleteDevelopment(props.item.id);
+    await nextTick();
+    showModalDelete.value = false;
+  } catch {
+    // kalau error → modal tetap terbuka (UX lebih benar)
+  }
+}
 </script>
 
 <template>
@@ -17,14 +61,16 @@ const props = defineProps({
         class="flex w-[100px] h-20 shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
       >
         <img
-          :src="item.thumbnail"
+          :src="safeImageUrl"
+          loading="lazy"
           class="w-full h-full object-cover"
-          alt="photo"
+          alt="Thumbnail pembangunan"
+          @error="handleImageError"
         />
       </div>
       <div class="flex flex-col gap-[6px] w-full ml-4 mr-9">
         <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-          {{ item.name }}
+          {{ safeName }}
         </p>
         <div class="flex items-center gap-1">
           <img
@@ -35,17 +81,42 @@ const props = defineProps({
           <p class="font-medium text-sm text-desa-secondary">
             Penanggung Jawab:
             <span class="font-medium text-base text-desa-dark-green">
-              {{ item.person_in_charge }}
+              {{ safePersonInCharge }}
             </span>
           </p>
         </div>
       </div>
-      <a
-        href="kd-pembangunan-desa-manage.html"
-        class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-      >
-        <span class="font-medium text-white">Manage</span>
-      </a>
+      <div class="flex items-center gap-3 shrink-0">
+        <RouterLink
+          :to="{
+            name: ROUTE_NAMES.MANAGE_DEVELOPMENT,
+            params: { id: item.id },
+          }"
+          class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
+          aria-label="Kelola pembangunan desa"
+        >
+          <span class="font-medium text-white">Manage</span>
+        </RouterLink>
+        <button
+          class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
+          @click="showModalDelete = true"
+        >
+          <p class="font-medium text-white">Hapus Data</p>
+          <img
+            src="@/assets/images/icons/trash-white.svg"
+            class="flex size-6 shrink-0"
+            alt="icon"
+          />
+        </button>
+        <ModalDelete
+          v-model="showModalDelete"
+          title="Hapus Pembangunan?"
+          description="Tindakan ini permanen dan tidak bisa dibatalkan!"
+          :loading="isDeleting"
+          confirm-text="Iya Hapus"
+          @confirm="handleDelete"
+        />
+      </div>
     </div>
     <hr class="border-desa-background" />
     <div class="grid grid-cols-3 gap-3">

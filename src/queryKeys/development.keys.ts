@@ -18,5 +18,5 @@ export const developmentKeys = {
       params.perPage,
     ] as const,
 
-  detail: (id: string) => [...developmentKeys.all, "detail", id] as const,
+  details: (id: string) => [...developmentKeys.all, "detail", id] as const,
 };

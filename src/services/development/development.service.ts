@@ -1,24 +1,26 @@
-// src/services/development.service.ts
+// src/services/development/development.service.ts
 import { axiosInstance } from "@/api/axios";
-import type { PaginatedResponse } from "@/types/api";
-import type { Development } from "@/types/development.type";
+import {
+  CreateDevelopmentPayload,
+  Development,
+} from "@/types/development.type";
 
-export interface DevelopmentSearch {
-  keyword?: string;
-}
+/* ================= API ================= */
+export const getDevelopmentById = async (id: string): Promise<Development> => {
+  const response = await axiosInstance.get<{ data: Development }>(
+    `/development/${id}`,
+  );
 
-export async function fetchDevelopments(params: {
-  page: number;
-  perPage: number;
-  search?: DevelopmentSearch;
-}): Promise<PaginatedResponse<Development>> {
-  const { data } = await axiosInstance.get("development/all/paginated", {
-    params: {
-      page: params.page,
-      per_page: params.perPage,
-      search: params.search?.keyword,
-    },
-  });
+  return response.data.data;
+};
 
+export const createDevelopment = async (
+  payload: CreateDevelopmentPayload,
+): Promise<Development> => {
+  const { data } = await axiosInstance.post("/development", payload);
   return data.data;
-}
+};
+
+export const deleteDevelopment = async (id: string): Promise<void> => {
+  await axiosInstance.delete(`/development/${id}`);
+};
