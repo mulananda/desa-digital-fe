@@ -5,30 +5,51 @@ import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
 import { computed, ref, watch, shallowRef } from "vue";
 import { useRoute } from "vue-router";
 
-import thumbnailPreview from "@/assets/images/thumbnails/thumbnail-bansos-preview.svg";
+/* =========================================================
+ * ROUTE PARAM
+ * ========================================================= */
 
-/* ================= ROUTE ================= */
+// Ambil instance route
 const route = useRoute();
 
+// Ambil ID dari URL dan pastikan bertipe string
+// Menghindari error jika params bukan string
 const recipientId = computed<string | null>(() => {
   const id = route.params.id;
   return typeof id === "string" ? id : null;
 });
 
-/* ================= DATA ================= */
+/* =========================================================
+ * FETCH DATA DETAIL PENGAJUAN
+ * ========================================================= */
+
+// Mengambil detail pengajuan berdasarkan recipientId
+// isLoading   → pertama kali load
+// isFetching  → refetch data
+// error       → jika terjadi kesalahan
 const { recipient, isLoading, isFetching, error, refetch } =
   useSocialAssistanceRecipient(recipientId);
 
+// Fungsi untuk retry fetch jika terjadi error
 const handleRefetch = () => refetch();
 
-/* ================= APPROVAL STATE ================= */
+/* =========================================================
+ * STATE APPROVAL
+ * ========================================================= */
+
+// Menyimpan file bukti pencairan (tidak perlu deep reactivity)
 const proofFile = shallowRef<File | null>(null);
+
+// Menyimpan alasan penolakan
 const rejectionReason = ref("");
 
 /**
  * Sync alasan reject dari backend ke textarea
- * - pending  → kosong (editable)
- * - rejected → isi dari backend
+ *
+ * - Jika status rejected → tampilkan alasan dari backend
+ * - Jika status pending → kosongkan textarea
+ *
+ * immediate: true → langsung jalan saat pertama kali load
  */
 watch(
   () => recipient.value,
@@ -46,14 +67,18 @@ watch(
   { immediate: true },
 );
 
-/**
- * Mutations dibuat SETELAH recipientId tersedia
- * → menghindari `value!` dan race condition
- */
+/* =========================================================
+ * INITIALIZE MUTATION (ANTI RACE CONDITION)
+ * ========================================================= */
+
+// Tempat menyimpan instance mutation approve/reject
+// Bisa null karena recipientId belum tentu tersedia saat awal render
 const approval = shallowRef<ReturnType<typeof useRecipientApproval> | null>(
   null,
 );
 
+// Membuat mutation hanya jika recipientId sudah tersedia
+// Menghindari race condition & penggunaan non-null assertion (!)
 watch(
   recipientId,
   (id) => {
@@ -63,9 +88,15 @@ watch(
   { immediate: true },
 );
 
-/* ================= IMAGE PREVIEW ================= */
+/* =========================================================
+ * IMAGE PREVIEW (UPLOAD BUKTI)
+ * ========================================================= */
+
+// Menyimpan URL preview gambar sementara
 const previewUrl = ref<string | null>(null);
 
+// Setiap file berubah → buat objectURL untuk preview
+// onCleanup digunakan untuk mencegah memory leak
 watch(proofFile, (file, _, onCleanup) => {
   if (!file) {
     previewUrl.value = null;
@@ -75,48 +106,68 @@ watch(proofFile, (file, _, onCleanup) => {
   const url = URL.createObjectURL(file);
   previewUrl.value = url;
 
+  // Hapus URL saat file berubah / component unmount
   onCleanup(() => {
     URL.revokeObjectURL(url);
   });
 });
 
-/* ================= HANDLERS ================= */
+/* =========================================================
+ * HANDLERS
+ * ========================================================= */
+
+// Saat user memilih file
 const handleFileChange = (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   proofFile.value = files?.[0] ?? null;
 };
 
+// Saat klik tombol Setuju
 const handleApprove = () => {
+  // Pastikan file dan mutation tersedia
   if (!proofFile.value || !approval.value) return;
 
   approval.value.approve({
     status: "approved",
-    proof: proofFile.value,
+    proof: proofFile.value, // kirim file ke backend
   });
 };
 
+// Saat klik tombol Tolak
 const handleReject = () => {
   if (!approval.value) return;
 
   approval.value.reject({
     status: "reject",
-    rejection_reason: rejectionReason.value || "-",
+    rejection_reason: rejectionReason.value || "-", // kirim alasan
   });
 };
 
-// trigger open upload file
+// Referensi ke input file (disembunyikan)
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
+// Trigger klik input file secara manual (custom upload button)
 const triggerFile = () => {
   if (!canTakeAction.value) return;
   fileInputRef.value?.click();
 };
 
-/* ================= UI STATES ================= */
+/* =========================================================
+ * UI STATE (LOADING MUTATION)
+ * ========================================================= */
+
+// True saat proses approve sedang berjalan
 const isApproving = computed(() => approval.value?.isApproving.value ?? false);
+
+// True saat proses reject sedang berjalan
 const isRejecting = computed(() => approval.value?.isRejecting.value ?? false);
 
-/* ================= disable aprove/reject jika status tidak pending ================= */
+/* =========================================================
+ * PROTECTION LOGIC
+ * ========================================================= */
+
+// Aksi hanya boleh dilakukan jika status masih pending
+// Digunakan untuk disable button & readonly textarea
 const canTakeAction = computed(() => {
   return recipient.value?.status === "pending";
 });
@@ -480,7 +531,7 @@ const canTakeAction = computed(() => {
                   ? previewUrl
                   : recipient?.proof?.trim()
                     ? recipient.proof
-                    : thumbnailPreview
+                    : '/images/thumbnails/thumbnail-bansos-preview.svg'
               "
               alt="image"
               class="size-full object-cover"

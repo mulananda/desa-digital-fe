@@ -1,4 +1,6 @@
 // src/queryKeys/socialAssistanceRecipient.keys.ts
+import { sanitizeSearchParam } from "@/utils/sanitization";
+
 export interface SocialAssistanceRecipientListParams {
   keyword?: string;
   page: number;
@@ -13,7 +15,7 @@ export const socialAssistanceRecipientKeys = {
   list: (params: SocialAssistanceRecipientListParams) =>
     [
       ...socialAssistanceRecipientKeys.lists(),
-      params.keyword ?? null,
+      sanitizeSearchParam(params.keyword), // ✅ NEW: Double sanitization
       params.page,
       params.perPage,
     ] as const,
