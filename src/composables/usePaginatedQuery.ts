@@ -4,11 +4,14 @@ import type { PaginatedResponse, PaginationMeta } from "@/types/api";
 
 /* ================= TYPES ================= */
 export interface PaginatedFetcher<T, TSearch = unknown> {
-  (params: {
-    page: number;
-    perPage: number;
-    search?: TSearch;
-  }): Promise<PaginatedResponse<T>>;
+  (
+    params: {
+      page: number;
+      perPage: number;
+      search?: TSearch;
+    },
+    options?: { signal?: AbortSignal },
+  ): Promise<PaginatedResponse<T>>;
 }
 
 export interface UsePaginatedQueryOptions<T, TSearch = unknown> {
@@ -44,6 +47,10 @@ export function usePaginatedQuery<T, TSearch = unknown>(
   const page = ref(1);
   const perPage = ref(initialPerPage);
 
+  /* ================= ABORT CONTROLLER ================= */
+  // ✅ NEW: Handle request cancellation for race conditions
+  const abortController = ref<AbortController>(new AbortController());
+
   /* ================= SEARCH (DEBOUNCED) ================= */
   const rawSearch = computed(() => search?.());
   const debouncedSearch = ref<TSearch | undefined>(rawSearch.value);
@@ -72,15 +79,33 @@ export function usePaginatedQuery<T, TSearch = unknown>(
     }),
   );
 
+  /* ================= ABORT ON QUERY KEY CHANGE ================= */
+  // ✅ NEW: Cancel previous request when query key changes
+  watch(
+    queryKeyComputed,
+    () => {
+      // Cancel any in-flight request
+      abortController.value.abort();
+      // Create new controller for next request
+      abortController.value = new AbortController();
+    },
+    { immediate: false },
+  );
+
   /* ================= QUERY ================= */
   const query = useQuery({
     queryKey: queryKeyComputed,
     queryFn: () =>
-      fetcher({
-        page: page.value,
-        perPage: perPage.value,
-        search: debouncedSearch.value,
-      }),
+      fetcher(
+        {
+          page: page.value,
+          perPage: perPage.value,
+          search: debouncedSearch.value,
+        },
+        {
+          signal: abortController.value.signal, // ✅ NEW: Pass abort signal
+        },
+      ),
     enabled: computed(() => enabled()),
     staleTime,
 
@@ -128,6 +153,12 @@ export function usePaginatedQuery<T, TSearch = unknown>(
   function reset() {
     page.value = 1;
   }
+
+  /* ================= CLEANUP ================= */
+  // ✅ NEW: Cleanup on unmount
+  onBeforeUnmount(() => {
+    abortController.value.abort();
+  });
 
   /* ================= EXPOSE ================= */
   return {
