@@ -70,7 +70,6 @@ async function handleDelete() {
       <h1 class="font-semibold text-2xl">Manage Kepala Rumah</h1>
     </div>
     <button
-      data-modal="Modal-Delete"
       class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
       @click="showModalDelete = true"
     >
