@@ -28,6 +28,7 @@ function validateListResponse(data: any): PaginatedResponse<SocialAssistance> {
 }
 
 /**
+ * GET LIST
  * Fetch paginated social assistances
  * ✅ Supports request cancellation
  * ✅ Includes error handling
@@ -80,3 +81,36 @@ export async function fetchSocialAssistances(
     throw error;
   }
 }
+
+/**
+ * GET DETAIL BY ID
+ */
+export const getSocialAssistanceById = async (
+  id: string,
+): Promise<SocialAssistance> => {
+  const { data } = await axiosInstance.get(`/social-assistance/${id}`);
+
+  /**
+   * Best practice:
+   * - Return hanya data yang dipakai UI
+   * - Jangan return whole axios response
+   */
+  return data.data ?? data;
+};
+
+/**
+ * DELETE
+ */
+export const deleteSocialAssistance = async (id: string): Promise<void> => {
+  await axiosInstance.delete(`/social-assistance/${id}`);
+};
+
+/**
+ * CREATE
+ */
+export const createSocialAssistance = async (
+  payload: FormData,
+): Promise<SocialAssistance> => {
+  const { data } = await axiosInstance.post(`/social-assistance`, payload);
+  return data.data;
+};

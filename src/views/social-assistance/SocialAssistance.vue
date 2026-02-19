@@ -1,66 +1,74 @@
-<script setup>
-import { useSocialAssistanceStore } from "@/stores/socialAssistance";
-import { storeToRefs } from "pinia";
-import { onMounted, computed, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { ROUTE_NAMES } from "@/config/routes.config";
+<script setup lang="ts">
+/* =========================================================
+ * 1. IMPORTS
+ * ========================================================= */
+import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
 
+import ModalDelete from "@/components/ui/ModalDelete.vue";
+import ErrorState from "@/components/ui/state/ErrorState.vue";
+import LoadingState from "@/components/ui/state/LoadingState.vue";
+
+import { useSocialAssistance } from "@/composables/social-assistances/useSocialAssistance";
+import { useDeleteSocialAssistance } from "@/composables/social-assistances/useDeleteSocialAssistance";
+
+import { ROUTE_NAMES } from "@/config/routes.config";
+import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
+
+/* =========================================================
+ * 2. STATIC CONFIG (UI ONLY)
+ * ========================================================= */
 const DEFAULT_THUMBNAIL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
 
-// components
-import ModalDelete from "@/components/ui/ModalDelete.vue";
-import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
-
+/* =========================================================
+ * 3. ROUTE STATE (SOURCE OF TRUTH)
+ * ========================================================= */
 const route = useRoute();
-const router = useRouter();
 
-const socialAssistanceStore = useSocialAssistanceStore();
-const { loading } = storeToRefs(socialAssistanceStore);
-const { fetchSocialAssistance, deleteSocialAssistance } = socialAssistanceStore;
+/**
+ * ID dianggap WAJIB ada.
+ * Kalau tidak ada → itu routing error, bukan business logic.
+ */
+const socialAssistanceId = computed(() => route.params.id as string);
 
-const socialAssistance = ref({});
-const showModalDelete = ref(false);
+/* =========================================================
+ * 4. SERVER STATE (TanStack Query)
+ * ========================================================= */
+const { socialAssistance, isLoading, isFetching, error, refetch } =
+  useSocialAssistance(socialAssistanceId);
 
-// ID dari route
-const socialAssistanceId = computed(() => route.params.id);
+/* =========================================================
+ * 5. UI STATE (LOCAL ONLY)
+ * ========================================================= */
+const isDeleteModalOpen = ref(false);
 
-// loading khusus delete
-const isDeleting = computed(() => loading.value);
+/* =========================================================
+ * 6. MUTATION (SERVER ACTION)
+ * ========================================================= */
+const { deleteSocialAssistance, isDeleting } = useDeleteSocialAssistance();
 
-// fetch data
-const fetchData = async () => {
-  try {
-    socialAssistance.value = await fetchSocialAssistance(
-      socialAssistanceId.value,
-    );
-  } catch {
-    // optional: redirect / fallback
-  }
-};
+/* =========================================================
+ * 7. ACTIONS / HANDLERS
+ * ========================================================= */
+async function confirmDelete() {
+  await deleteSocialAssistance(socialAssistanceId.value);
 
-onMounted(fetchData);
+  // Tutup modal hanya jika sukses
+  isDeleteModalOpen.value = false;
+}
 
-// delete handler
-async function handleDelete() {
-  if (!socialAssistanceId.value) return;
+function openDeleteModal() {
+  isDeleteModalOpen.value = true;
+}
 
-  try {
-    await deleteSocialAssistance(socialAssistanceId.value);
-    showModalDelete.value = false;
-    await router.push({ name: ROUTE_NAMES.SOCIAL_ASSISTANCE });
-  } catch {
-    showModalDelete.value = false;
-  }
+function closeDeleteModal() {
+  isDeleteModalOpen.value = false;
 }
 </script>
 
 <template>
   <div id="Header" class="flex items-center justify-between">
-    <!-- LOADING -->
-    <div v-if="loading" class="p-4">
-      <p>Loading data...</p>
-    </div>
     <div class="flex flex-col gap-2">
       <div class="flex gap-1 items-center leading-5 text-desa-secondary">
         <p
@@ -79,9 +87,9 @@ async function handleDelete() {
     </div>
     <div class="flex items-center gap-3">
       <button
+        @click="isDeleteModalOpen = true"
         data-modal="Modal-Delete"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
-        @click="showModalDelete = true"
       >
         <p class="font-medium text-white">Hapus Data</p>
         <img
@@ -93,7 +101,7 @@ async function handleDelete() {
       <RouterLink
         :to="{
           name: ROUTE_NAMES.EDIT_SOCIAL_ASSISTANCE,
-          params: { id: socialAssistance.id },
+          params: { id: socialAssistanceId },
         }"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
       >
@@ -106,7 +114,12 @@ async function handleDelete() {
       </RouterLink>
     </div>
   </div>
-  <div class="flex gap-[14px]">
+
+  <LoadingState v-if="isLoading" label="Memuat detail bantuan sosial..." />
+  <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
+  <ErrorState v-else-if="error" :message="error" @retry="refetch" />
+
+  <div v-else-if="socialAssistance" class="flex gap-[14px]">
     <section
       id="Informasi-Bantuan-Sosial"
       class="flex flex-col shrink-0 w-[calc(545/1000*100%)] h-fit rounded-3xl p-6 gap-6 bg-white"
@@ -119,22 +132,22 @@ async function handleDelete() {
           class="flex w-[120px] h-[100px] shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
         >
           <img
-            :src="socialAssistance?.thumbnail ?? DEFAULT_THUMBNAIL"
+            :src="socialAssistance.thumbnail || DEFAULT_THUMBNAIL"
             class="w-full h-full object-cover"
             alt="photo"
           />
         </div>
         <div
-          class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-soft-green"
           v-if="socialAssistance.is_available"
+          class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-soft-green"
         >
           <span class="font-semibold text-xs text-white uppercase"
             >Tersedia</span
           >
         </div>
         <div
+          v-else
           class="badge rounded-full p-3 gap-2 flex justify-center shrink-0 bg-desa-red"
-          v-if="!socialAssistance.is_available"
         >
           <span class="font-semibold text-xs text-white uppercase"
             >Tidak Tersedia</span
@@ -187,7 +200,7 @@ async function handleDelete() {
         </div>
         <div class="flex flex-col gap-1 w-full">
           <p class="font-semibold text-lg leading-[22.5px] text-desa-blue">
-            {{ socialAssistance.social_assistance_recipients_count || 0 }} Warga
+            {{ socialAssistance.social_assistance_recipients_count }} Warga
           </p>
           <span class="font-medium text-desa-secondary"> Total Pengajuan </span>
         </div>
@@ -209,9 +222,9 @@ async function handleDelete() {
       </p>
       <div id="List-Bansos-Terkahir" class="flex flex-col gap-6">
         <div
-          class="card flex flex-col rounded-2xl border border-desa-background p-4 gap-4"
           v-for="recipient in socialAssistance.social_assistance_recipients"
           :key="recipient.id"
+          class="card flex flex-col rounded-2xl border border-desa-background p-4 gap-4"
         >
           <div class="flex items-center justify-between">
             <p class="font-medium text-sm text-desa-secondary">
@@ -297,11 +310,11 @@ async function handleDelete() {
     </section>
   </div>
   <ModalDelete
-    v-model="showModalDelete"
+    v-model="isDeleteModalOpen"
     title="Hapus Bantuan Sosial?"
     description="Tindakan ini permanen dan tidak bisa dibatalkan!"
     :loading="isDeleting"
     confirm-text="Iya Hapus"
-    @confirm="handleDelete"
+    @confirm="confirmDelete"
   />
 </template>

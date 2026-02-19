@@ -20,4 +20,6 @@ export const socialAssistanceKeys = {
       params.page,
       params.perPage,
     ] as const,
+
+  detail: (id: string) => [...socialAssistanceKeys.all, "detail", id] as const,
 };
