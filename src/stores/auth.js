@@ -84,6 +84,7 @@ export const useAuthStore = defineStore("auth", {
      */
     handleSessionExpired() {
       this.clearAuth();
+      return { name: ROUTE_NAMES.LOGIN };
     },
 
     clearAuth() {
