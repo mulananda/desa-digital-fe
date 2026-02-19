@@ -5,7 +5,6 @@ import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
 import { validateImageUrl, sanitizeAttribute } from "@/utils/sanitization";
 import type { Development } from "@/types/development.type";
 import ModalDelete from "../ui/ModalDelete.vue";
-import { nextTick } from "vue";
 import { useDeleteDevelopment } from "@/composables/development/useDeleteDevelopment";
 
 const DEFAULT_THUMBNAIL =
@@ -46,7 +45,7 @@ async function handleDelete() {
   if (!props.item.id) return;
   try {
     await deleteDevelopment(props.item.id);
-    await nextTick();
+
     showModalDelete.value = false;
   } catch {
     // kalau error → modal tetap terbuka (UX lebih benar)
