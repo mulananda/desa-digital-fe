@@ -1,47 +1,62 @@
-<script setup>
+<!-- src/components/ui/ModalDelete.vue -->
+<script setup lang="ts">
 import { computed } from "vue";
 
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    required: true,
-  },
-  title: {
-    type: String,
-    default: "Hapus Data?",
-  },
-  description: {
-    type: String,
-    default: "Tindakan ini permanen dan tidak bisa dibatalkan!",
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  confirmText: {
-    type: String,
-    default: "Iya Hapus",
-  },
-  cancelText: {
-    type: String,
-    default: "Batal",
-  },
+/**
+ * Props Type Definition
+ * Dibuat interface agar reusable & lebih jelas kontraknya
+ */
+interface Props {
+  modelValue: boolean;
+  title?: string;
+  description?: string;
+  loading?: boolean;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+/**
+ * defineProps + default value
+ * withDefaults dipakai agar tetap type-safe
+ */
+const props = withDefaults(defineProps<Props>(), {
+  title: "Hapus Data?",
+  description: "Tindakan ini permanen dan tidak bisa dibatalkan!",
+  loading: false,
+  confirmText: "Iya Hapus",
+  cancelText: "Batal",
 });
 
-const emit = defineEmits(["update:modelValue", "confirm"]);
+/**
+ * Emits Type Definition
+ * Memberi typing pada event supaya auto-complete & aman
+ */
+const emit = defineEmits<{
+  (e: "update:modelValue", value: boolean): void;
+  (e: "confirm"): void;
+}>();
 
-const show = computed({
+/**
+ * Computed untuk v-model binding
+ */
+const show = computed<boolean>({
   get: () => props.modelValue,
   set: (val) => emit("update:modelValue", val),
 });
 
-function close() {
+/**
+ * Close modal (disabled saat loading)
+ */
+function close(): void {
   if (!props.loading) {
     show.value = false;
   }
 }
 
-function confirm() {
+/**
+ * Emit confirm event
+ */
+function confirm(): void {
   emit("confirm");
 }
 </script>
