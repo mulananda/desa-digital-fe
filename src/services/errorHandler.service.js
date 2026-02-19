@@ -49,6 +49,7 @@ class ErrorHandlerService {
       [HTTP_STATUS.UNPROCESSABLE]: this.handleValidationError,
       [HTTP_STATUS.UNAUTHORIZED]: this.handleUnauthorized,
       [HTTP_STATUS.FORBIDDEN]: this.handleForbidden,
+      [HTTP_STATUS.NOT_FOUND]: this.handleNotFound,
       [HTTP_STATUS.BAD_REQUEST]: this.handleBadRequest,
       [HTTP_STATUS.SERVER_ERROR]: this.handleServerError,
     };
@@ -74,10 +75,18 @@ class ErrorHandlerService {
 
   /**
    * Handle 403 Forbidden
+   * Notification & redirect sudah di-handle oleh axios interceptor
    */
-  handleForbidden = (response, message, showNotification) => {
+  handleForbidden = () => {
+    return null;
+  };
+
+  /**
+   * Handle 404 Not Found
+   */
+  handleNotFound = (response, message, showNotification) => {
     if (showNotification) {
-      notificationService.error(ERROR_MESSAGES.FORBIDDEN);
+      notificationService.error("Data yang Anda cari tidak ditemukan.");
     }
     return null;
   };
@@ -126,6 +135,7 @@ class ErrorHandlerService {
     }
 
     this.handle(error, { context: "Login" });
+    return ERROR_MESSAGES.UNKNOWN;
   }
 }
 
