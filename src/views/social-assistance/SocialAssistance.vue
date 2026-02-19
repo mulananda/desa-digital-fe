@@ -5,6 +5,9 @@ import { onMounted, computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
+const DEFAULT_THUMBNAIL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+
 // components
 import ModalDelete from "@/components/ui/ModalDelete.vue";
 import { formatRupiah, formatToClientTimezone } from "@/helpers/format";
@@ -116,7 +119,7 @@ async function handleDelete() {
           class="flex w-[120px] h-[100px] shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
         >
           <img
-            :src="socialAssistance?.thumbnail"
+            :src="socialAssistance?.thumbnail ?? DEFAULT_THUMBNAIL"
             class="w-full h-full object-cover"
             alt="photo"
           />
