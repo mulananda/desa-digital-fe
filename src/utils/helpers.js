@@ -15,10 +15,22 @@ export const isValidToken = (token) => {
 //   };
 // };
 
+const isDev = typeof import.meta !== "undefined" && import.meta.env?.DEV;
+
 export const logger = {
-  info: (msg, ...args) => console.log(`ℹ️ ${msg}`, ...args),
-  success: (msg, ...args) => console.log(`✅ ${msg}`, ...args),
-  warn: (msg, ...args) => console.warn(`⚠️ ${msg}`, ...args),
-  error: (msg, ...args) => console.error(`❌ ${msg}`, ...args),
-  table: (msg, ...args) => console.table(`ℹ️ ${msg}`, ...args),
+  info: (msg, ...args) => {
+    if (isDev) console.log(`ℹ️ ${msg}`, ...args);
+  },
+  success: (msg, ...args) => {
+    if (isDev) console.log(`✅ ${msg}`, ...args);
+  },
+  warn: (msg, ...args) => {
+    if (isDev) console.warn(`⚠️ ${msg}`, ...args);
+  },
+  error: (msg, ...args) => {
+    if (isDev) console.error(`❌ ${msg}`, ...args);
+  },
+  table: (msg, ...args) => {
+    if (isDev) console.table(`ℹ️ ${msg}`, ...args);
+  },
 };
