@@ -1,6 +1,7 @@
 <script setup>
 import Sidebar from "@/components/sidebar/Sidebar.vue";
 import Topbar from "@/components/Topbar.vue";
+import ErrorBoundary from "@/components/ui/state/ErrorBoundary.vue";
 </script>
 
 <template>
@@ -14,7 +15,9 @@ import Topbar from "@/components/Topbar.vue";
         id="Content"
         class="relative flex flex-col flex-1 gap-[14px] p-6 pb-[30px] w-full shrink-0"
       >
-        <RouterView />
+        <ErrorBoundary>
+          <RouterView />
+        </ErrorBoundary>
       </div>
     </div>
   </div>
