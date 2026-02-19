@@ -7,6 +7,7 @@ import {
   NotificationProgress,
   Notivue,
 } from "notivue";
+import ErrorBoundary from "@/components/ui/state/ErrorBoundary.vue";
 </script>
 
 <template>
@@ -20,6 +21,8 @@ import {
     <NotificationProgress :item="item" />
   </Notivue>
   <main>
-    <RouterView />
+    <ErrorBoundary>
+      <RouterView />
+    </ErrorBoundary>
   </main>
 </template>
