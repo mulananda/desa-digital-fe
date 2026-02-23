@@ -48,17 +48,17 @@ app.use(VueQueryPlugin, { queryClient }); // 🔥 TanStack
 app.use(notivue);
 app.use(router);
 
-// ==========================
-// Global Error Handler
-// ==========================
-app.config.errorHandler = (err, instance, info) => {
-  logger.error("Uncaught Vue Error:", err);
-  logger.error("Error Info:", info);
-};
+// // ==========================
+// // Global Error Handler
+// // ==========================
+// app.config.errorHandler = (err, instance, info) => {
+//   logger.error("Uncaught Vue Error:", err);
+//   logger.error("Error Info:", info);
+// };
 
-window.addEventListener("unhandledrejection", (event) => {
-  logger.error("Unhandled Promise Rejection:", event.reason);
-});
+// window.addEventListener("unhandledrejection", (event) => {
+//   logger.error("Unhandled Promise Rejection:", event.reason);
+// });
 
 // ==========================
 // Mount
