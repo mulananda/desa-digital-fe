@@ -5,10 +5,10 @@ export interface SocialAssistance {
   id: string;
   thumbnail: string;
   name: string;
-  category: string;
+  category: SocialAssistanceCategory;
   amount: number;
   provider: string;
-  description?: string;
+  description: string;
   is_available: boolean;
 
   social_assistance_recipients?: SocialAssistanceRecipient[];
@@ -16,12 +16,8 @@ export interface SocialAssistance {
   social_assistance_recipients_count?: number;
 }
 
-export interface CreateSocialAssistancePayload {
-  thumbnail: string;
-  name: string;
-  category: string;
-  amount: number;
-  provider: string;
-  description?: string;
-  is_available: boolean;
-}
+export type SocialAssistanceCategory =
+  | "staple"
+  | "cash"
+  | "subsidized fuel"
+  | "health";
