@@ -1,6 +1,12 @@
 // src/types/socialAssistance.type.ts
 import { SocialAssistanceRecipient } from "./socialAssistanceRecipient.type";
 
+export type SocialAssistanceCategory =
+  | "staple"
+  | "cash"
+  | "subsidized fuel"
+  | "health";
+
 export interface SocialAssistance {
   id: string;
   thumbnail: string;
@@ -15,9 +21,3 @@ export interface SocialAssistance {
   // withCount
   social_assistance_recipients_count?: number;
 }
-
-export type SocialAssistanceCategory =
-  | "staple"
-  | "cash"
-  | "subsidized fuel"
-  | "health";
