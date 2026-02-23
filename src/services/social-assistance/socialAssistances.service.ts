@@ -3,7 +3,10 @@ import { axiosInstance } from "@/api/axios";
 import type { PaginatedResponse } from "@/types/api";
 import { logger } from "@/utils/helpers";
 import type { SocialAssistance } from "@/types/socialAssistance.type";
-import { CreateSocialAssistancePayload } from "@/schemas/social-assistance/socialAssistance.schema";
+import {
+  CreateSocialAssistancePayload,
+  SocialAssistanceUpdatePayload,
+} from "@/schemas/social-assistance/socialAssistance.schema";
 
 export interface SocialAssistanceSearch {
   keyword?: string;
@@ -131,6 +134,44 @@ export const createSocialAssistance = async (
 
   const { data } = await axiosInstance.post<{ data: unknown }>(
     "/social-assistance",
+    formData,
+  );
+
+  return data.data;
+};
+
+/**
+ * UPDATE
+ */
+export const updateSocialAssistance = async (
+  id: string,
+  payload: SocialAssistanceUpdatePayload,
+) => {
+  const formData = new FormData();
+
+  formData.append("_method", "PUT");
+
+  const entries: Record<string, string | Blob> = {
+    name: payload.name,
+    category: payload.category,
+    amount: String(payload.amount),
+    provider: payload.provider,
+    description: payload.description,
+    is_available: String(payload.is_available ? 1 : 0),
+  };
+
+  // Hanya append thumbnail jika ada file baru
+  // null = user tidak ganti thumbnail → tidak dikirim ke backend
+  if (payload.thumbnail instanceof File) {
+    entries.thumbnail = payload.thumbnail;
+  }
+
+  for (const [key, value] of Object.entries(entries)) {
+    formData.append(key, value);
+  }
+
+  const { data } = await axiosInstance.post<{ data: unknown }>(
+    `/social-assistance/${id}`,
     formData,
   );
 

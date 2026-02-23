@@ -86,3 +86,49 @@ type _GuardKeys =
     ? true
     : never;
 const _guard: _GuardKeys = true;
+
+// ---------------------------------------------------------------------------------------------------
+
+// ---------- File Schema untuk Update (nullable) ----------
+const fileSchemaOptional = z
+  .custom<File | null>(
+    (val) => {
+      // null = tidak ganti thumbnail → valid
+      if (val === null || val === undefined) return true;
+      // Ada file → validasi seperti biasa
+      return typeof window !== "undefined"
+        ? val instanceof File && val.size > 0
+        : val instanceof Object && "size" in val && (val as any).size > 0;
+    },
+    { message: "File tidak valid" },
+  )
+  .refine(
+    (file) => {
+      if (!file) return true; // null → skip
+      return file.size <= MAX_FILE_SIZE;
+    },
+    { message: "Ukuran file maksimal 2MB" },
+  )
+  .refine(
+    (file) => {
+      if (!file) return true; // null → skip
+      return (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(file.type);
+    },
+    { message: "Format harus jpg, jpeg, png, atau webp" },
+  );
+
+// Update: thumbnail opsional (tidak wajib ganti gambar) dan teteap ada validasi max size
+export const socialAssistanceUpdateSchema = socialAssistanceFormSchema.extend({
+  thumbnail: fileSchemaOptional,
+});
+
+export type SocialAssistanceUpdatePayload = z.output<
+  typeof socialAssistanceUpdateSchema
+>;
+
+export type SocialAssistanceUpdateFormInput = Omit<
+  SocialAssistanceFormInput,
+  "thumbnail"
+> & {
+  thumbnail: File | null; // null = tidak ganti thumbnail
+};

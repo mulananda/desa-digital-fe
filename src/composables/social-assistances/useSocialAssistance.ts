@@ -1,17 +1,17 @@
+// src/composables/social-assistances/useSocialAssistance.ts
 import { useQuery } from "@tanstack/vue-query";
-import { computed, type Ref } from "vue";
+import { computed, toValue, type MaybeRef } from "vue";
+
 import { socialAssistanceKeys } from "@/queryKeys/socialAssistance.keys";
 import { getSocialAssistanceById } from "@/services/social-assistance/socialAssistances.service";
 import type { SocialAssistance } from "@/types/socialAssistance.type";
+import type { SocialAssistanceCategory } from "@/schemas/social-assistance/socialAssistance.schema";
 
-/**
- * Default model untuk mencegah undefined saat render pertama.
- * Ini jadi fallback sebelum data API datang.
- */
+// ---------- Empty fallback ----------
 const EMPTY_SOCIAL_ASSISTANCE: SocialAssistance = {
   id: "",
   name: "",
-  category: "",
+  category: "" as SocialAssistanceCategory, // cast agar type-safe
   amount: 0,
   provider: "",
   description: "",
@@ -21,26 +21,22 @@ const EMPTY_SOCIAL_ASSISTANCE: SocialAssistance = {
   social_assistance_recipients_count: 0,
 };
 
-export const useSocialAssistance = (id: Ref<string | undefined>) => {
-  const enabled = computed(() => !!id.value);
+export const useSocialAssistance = (id: MaybeRef<string | undefined>) => {
+  // MaybeRef: bisa terima ref<string> atau string biasa
+  const resolvedId = computed(() => toValue(id));
+  const enabled = computed(() => !!resolvedId.value);
 
   const query = useQuery({
     enabled,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 menit
 
-    queryKey: computed(() => socialAssistanceKeys.detail(id.value as string)),
+    queryKey: computed(() =>
+      socialAssistanceKeys.detail(resolvedId.value as string),
+    ),
 
-    queryFn: ({ queryKey }) => {
-      const [, , socialAssistanceId] = queryKey as ReturnType<
-        typeof socialAssistanceKeys.detail
-      >;
+    // Langsung pakai resolvedId — tidak perlu destructure dari queryKey
+    queryFn: () => getSocialAssistanceById(resolvedId.value as string),
 
-      return getSocialAssistanceById(socialAssistanceId);
-    },
-    /**
-     * 🔥 Normalisasi data di sini
-     * Component akan SELALU menerima object valid
-     */
     select: (data): SocialAssistance => {
       if (!data) return EMPTY_SOCIAL_ASSISTANCE;
 
@@ -54,8 +50,9 @@ export const useSocialAssistance = (id: Ref<string | undefined>) => {
 
   return {
     socialAssistance: query.data,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
+    isPending: query.isPending, // untuk loading state awal (belum ada data)
+    isFetching: query.isFetching, // untuk background refetch indicator
+    isError: query.isError,
     error: query.error,
     refetch: query.refetch,
   };

@@ -1,457 +1,453 @@
 <!-- src/views/social-assistance/SocialAssistanceEdit.vue -->
-<script setup>
-/* =========================
- * IMPORTS
- * ========================= */
-import { ref, computed, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { storeToRefs } from "pinia";
-
-import { useSocialAssistanceStore } from "@/stores/socialAssistance";
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
+import InputFile from "@/components/ui/InputFile.vue";
 import Input from "@/components/ui/Input.vue";
 import InputNumber from "@/components/ui/InputNumber.vue";
+import Textarea from "@/components/ui/Textarea.vue";
 import Button from "@/components/ui/Button.vue";
 
-import { scrollToFirstError } from "@/utils/scrollToFirstError";
-
-/* icons */
 import IconEditSecondary from "@/assets/images/icons/edit-secondary-green.svg";
 import IconEditBlack from "@/assets/images/icons/edit-black.svg";
 import IconRpSquareSecondaryGreen from "@/assets/images/icons/rp-square-secondary-green.svg";
-import IconRpSquareBlack from "@/assets/images/icons/rp-square-black.svg";
+import IconRpSquareBlack from "@/assets/images/icons/rp-square-dark-green.svg";
 import IconProfileSecondaryGreen from "@/assets/images/icons/user-secondary-green.svg";
 import IconProfileBlack from "@/assets/images/icons/user-black.svg";
 import IconBagSecondary from "@/assets/images/icons/bag-2-secondary-green.svg";
 import IconBagDark from "@/assets/images/icons/bag-2-dark-green.svg";
-
 import IconMoneySecondary from "@/assets/images/icons/money-secondary-green.svg";
 import IconMoneyDark from "@/assets/images/icons/money-dark-green.svg";
-
 import IconGasSecondary from "@/assets/images/icons/gas-station-secondary-green.svg";
 import IconGasDark from "@/assets/images/icons/gas-station-dark-green.svg";
-
 import IconHealthSecondary from "@/assets/images/icons/health-secondary-green.svg";
-import IconHealthDark from "@/assets/images/icons/health-secondary-green.svg";
+import IconHealthDark from "@/assets/images/icons/health-dark-green.svg";
+
+import { useSocialAssistanceForm } from "@/schemas/social-assistance/useSocialAssistanceForm";
+import { useSocialAssistance } from "@/composables/social-assistances/useSocialAssistance";
+import { useUpdateSocialAssistance } from "@/composables/social-assistances/useUpdateSocialAssistance";
+import { useFormUX } from "@/utils/useFormUX";
+import { validateWithZod } from "@/utils/validateWithZod";
+import { extractBackendErrors } from "@/utils/extractBackendErrors";
+import {
+  socialAssistanceUpdateSchema,
+  type SocialAssistanceCategory,
+} from "@/schemas/social-assistance/socialAssistance.schema";
 
 /* =========================
- * ROUTER & STORE
+ * ROUTE
  * ========================= */
 const route = useRoute();
-const router = useRouter();
-
-const socialAssistanceStore = useSocialAssistanceStore();
-const { loading, error } = storeToRefs(socialAssistanceStore);
-const { fetchSocialAssistance, updateSocialAssistance } = socialAssistanceStore;
+const id = route.params.id as string;
 
 /* =========================
  * CONSTANTS
  * ========================= */
-const CATEGORY_OPTIONS = [
+const CATEGORY_OPTIONS: Array<{
+  value: SocialAssistanceCategory;
+  label: string;
+  icon: { inactive: string; active: string };
+}> = [
   {
     value: "staple",
     label: "Bahan Pokok",
-    icon: {
-      inactive: IconBagSecondary,
-      active: IconBagDark,
-    },
+    icon: { inactive: IconBagSecondary, active: IconBagDark },
   },
   {
     value: "cash",
     label: "Uang Tunai",
-    icon: {
-      inactive: IconMoneySecondary,
-      active: IconMoneyDark,
-    },
+    icon: { inactive: IconMoneySecondary, active: IconMoneyDark },
   },
   {
     value: "subsidized fuel",
     label: "BBM Subsidi",
-    icon: {
-      inactive: IconGasSecondary,
-      active: IconGasDark,
-    },
+    icon: { inactive: IconGasSecondary, active: IconGasDark },
   },
   {
     value: "health",
     label: "Kesehatan",
-    icon: {
-      inactive: IconHealthSecondary,
-      active: IconHealthDark,
-    },
+    icon: { inactive: IconHealthSecondary, active: IconHealthDark },
   },
 ];
 
-/* =========================
- * STATE
- * ========================= */
-const socialAssistance = ref(createEmptyForm());
-const thumbnailRef = ref(null);
+const AVAILABILITY_OPTIONS = [
+  {
+    value: true,
+    label: "Tersedia",
+    icon: {
+      inactive: "/src/assets/images/icons/tick-circle-secondary-green.svg",
+      active: "/src/assets/images/icons/tick-circle-dark-green.svg",
+    },
+  },
+  {
+    value: false,
+    label: "Tidak Tersedia",
+    icon: {
+      inactive: "/src/assets/images/icons/close-circle-secondary-green.svg",
+      active: "/src/assets/images/icons/close-circle-dark-green.svg",
+    },
+  },
+] as const;
 
 /* =========================
- * COMPUTED
+ * COMPOSABLES
  * ========================= */
-const socialAssistanceId = computed(() => route.params.id);
+const { form, errors, previewUrl, setThumbnail, setErrors, clearFieldError } =
+  useSocialAssistanceForm();
+
+const { socialAssistance, isPending: isFetching } = useSocialAssistance(id);
+
+const { mutate: submitUpdate, isPending: isSubmitting } =
+  useUpdateSocialAssistance(id);
+
+const { scrollToFirstError, focusFirstError } = useFormUX();
 
 /* =========================
- * FACTORIES & NORMALIZER
+ * REFS
  * ========================= */
-function createEmptyForm() {
-  return {
-    id: null,
-    thumbnail: null,
-    thumbnail_url: null,
-    name: "",
-    category: "",
-    amount: null,
-    provider: "",
-    description: "",
-    is_available: true,
-  };
-}
+const inputFileRef = ref<InstanceType<typeof InputFile> | null>(null);
 
 /* =========================
- * FETCH
+ * POPULATE FORM dari data existing
  * ========================= */
-async function fetchData() {
-  try {
-    loading.value = true;
-    const data = await fetchSocialAssistance(socialAssistanceId.value);
+watch(
+  socialAssistance,
+  (data) => {
+    if (!data) return;
+    form.name = data.name;
+    form.category = data.category as SocialAssistanceCategory;
+    form.amount = data.amount;
+    form.provider = data.provider;
+    form.description = data.description;
+    form.is_available = data.is_available;
+    // thumbnail tidak di-populate — user harus upload baru jika mau ganti
+  },
+  { immediate: true },
+);
 
-    socialAssistance.value = {
-      ...data,
-
-      // 🔥 CAST NUMERIC (WAJIB)
-      amount: data.amount !== null ? Number(data.amount) : null,
-
-      // thumbnail logic
-      thumbnail_url: data.thumbnail,
-      thumbnail: null,
-    };
-  } catch (err) {
-    console.error("Fetch social assistance failed:", err);
-  } finally {
-    loading.value = false;
-  }
-}
+/* =========================
+ * COMPUTED thumbnail preview
+ * existing thumbnail dari server (URL string)
+ * ========================= */
+const existingThumbnailUrl = computed(
+  () => previewUrl.value ?? socialAssistance.value?.thumbnail ?? null,
+);
 
 /* =========================
  * HANDLERS
  * ========================= */
-function handleImageChange(event) {
-  const file = event.target?.files?.[0];
-  if (!file || !file.type.startsWith("image/")) return;
-
-  if (socialAssistance.value.thumbnail_url) {
-    URL.revokeObjectURL(socialAssistance.value.thumbnail_url);
-  }
-
-  socialAssistance.value.thumbnail = file;
-  socialAssistance.value.thumbnail_url = URL.createObjectURL(file);
-}
-
 async function handleSubmit() {
-  const payload = {
-    ...socialAssistance.value,
-    is_available: socialAssistance.value.is_available ? 1 : 0,
-  };
+  const result = validateWithZod(socialAssistanceUpdateSchema, form);
 
-  await updateSocialAssistance(payload);
-
-  if (error.value) {
-    scrollToFirstError(error.value);
+  if (!result.success) {
+    setErrors(result.errors);
+    scrollToFirstError(result.errors);
+    focusFirstError(result.errors);
     return;
   }
 
-  router.push({
-    name: ROUTE_NAMES.MANAGE_SOCIAL_ASSISTANCE,
-    params: { id: socialAssistanceId.value },
-  });
+  try {
+    await submitUpdate(result.data);
+  } catch (error: unknown) {
+    const backendErrors = extractBackendErrors(error);
+    if (backendErrors) {
+      setErrors(backendErrors);
+      scrollToFirstError(backendErrors);
+      focusFirstError(backendErrors);
+    }
+  }
 }
-
-/* =========================
- * LIFECYCLE
- * ========================= */
-onMounted(fetchData);
 </script>
 
 <template>
-  <div id="Header" class="flex items-center justify-between">
+  <!-- Breadcrumb -->
+  <div class="flex items-center justify-between">
     <div class="flex flex-col gap-2">
-      <div class="flex gap-1 items-center leading-5 text-desa-secondary">
-        <p
-          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
+      <nav class="flex gap-1 items-center leading-5 text-desa-secondary">
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.SOCIAL_ASSISTANCE }"
+          class="hover:text-desa-dark-green transition-colors capitalize"
         >
           Bantuan sosial
-        </p>
-        <span>/</span>
-        <p
-          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
-        >
-          tambah bantuan sosial
-        </p>
-      </div>
-      <h1 class="font-semibold text-2xl">Tambah Bantuan Sosial</h1>
+        </RouterLink>
+        <span aria-hidden="true">/</span>
+        <span class="text-desa-dark-green font-semibold capitalize">
+          Edit bantuan sosial
+        </span>
+      </nav>
+      <h1 class="font-semibold text-2xl">Edit Bantuan Sosial</h1>
     </div>
   </div>
-  <form @submit.prevent="handleSubmit" id="myForm" class="capitalize">
+
+  <!-- Loading state -->
+  <div v-if="isFetching" class="flex justify-center py-12">
+    <span class="text-desa-secondary">Memuat data...</span>
+  </div>
+
+  <form
+    v-else
+    @submit.prevent="handleSubmit"
+    novalidate
+    aria-label="Form edit bantuan sosial"
+    class="capitalize"
+  >
     <div class="shrink-0 rounded-3xl p-6 bg-white flex flex-col gap-6 h-fit">
-      <section id="Thumbnail" class="flex items-center justify-between">
+      <!-- Thumbnail -->
+      <section
+        aria-labelledby="label-thumbnail"
+        class="flex items-center justify-between"
+      >
         <h2
+          id="label-thumbnail"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Thumbnail Bantuan Sosial
         </h2>
-        <div class="flex-1 flex items-center justify-between">
-          <div
-            id="Photo-Preview"
-            class="flex itce justify-center w-[120px] h-[100px] rounded-2xl overflow-hidden bg-desa-foreshadow"
-          >
-            <img
-              id="Photo"
-              :src="socialAssistance.thumbnail_url"
-              alt="image"
-              class="size-full object-cover"
-            />
-          </div>
-          <div class="relative">
-            <input
-              id="File"
-              type="file"
-              name="file"
-              class="absolute opacity-0 left-0 w-full top-0 h-full"
-              @change="handleImageChange"
-              ref="thumbnailRef"
-            />
-            <button
-              id="Upload"
-              type="button"
-              class="relative flex items-center py-4 px-6 rounded-2xl bg-desa-black gap-[10px]"
-              @click="thumbnailRef?.click()"
-            >
-              <img
-                src="@/assets/images/icons/send-square-white.svg"
-                alt="icon"
-                class="size-6 shrink-0"
-              />
-              <p class="font-medium leading-5 text-white">Upload</p>
-            </button>
-          </div>
+        <div class="flex-1">
+          <InputFile
+            ref="inputFileRef"
+            name="thumbnail"
+            :model-value="form.thumbnail"
+            :preview-url="existingThumbnailUrl"
+            :error-message="errors.thumbnail"
+            upload-label="Ganti Thumbnail"
+            change-label="Ganti Thumbnail"
+            @update:model-value="setThumbnail"
+          />
         </div>
       </section>
+
       <hr class="border-desa-background" />
+
+      <!-- Nama -->
       <section
-        id="Nama-Bantuan-Sosial"
+        aria-labelledby="label-name"
         class="flex items-center justify-between"
       >
         <p
+          id="label-name"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Nama Bantuan Sosial
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full">
-            <Input
-              v-model="socialAssistance.name"
-              type="text"
-              placeholder="Ketik Bantuan Sosial"
-              :icon="IconEditSecondary"
-              :filled-icon="IconEditBlack"
-              :error-message="error?.name"
-            />
-          </label>
+          <Input
+            name="name"
+            v-model="form.name"
+            type="text"
+            placeholder="Ketik Bantuan Sosial"
+            :icon="IconEditSecondary"
+            :filled-icon="IconEditBlack"
+            :error-message="errors.name"
+            @input="clearFieldError('name')"
+          />
         </div>
       </section>
+
       <hr class="border-desa-background" />
-      <section id="Kategori" class="flex items-center justify-between">
+
+      <!-- Kategori -->
+      <section
+        aria-labelledby="label-category"
+        class="flex items-center justify-between"
+      >
         <p
+          id="label-category"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Pilih Opsi Kategori
         </p>
-        <div class="grid grid-cols-2 flex-1 gap-6 shrink-0">
-          <label
-            v-for="category in CATEGORY_OPTIONS"
-            :key="category.value"
-            class="group flex w-full items-center h-14 rounded-2xl p-4 ring-[1.5px] ring-desa-background gap-2 has-[:checked]:ring-none has-[:checked]:bg-desa-foreshadow transition-setup"
-          >
-            <input
-              v-model="socialAssistance.category"
-              :value="category.value"
-              type="radio"
-              name="category"
-              class="size-[18px] accent-desa-secondary checked:accent-desa-dark-green"
-            />
-
-            <span
-              class="font-medium leading-5 w-full text-desa-secondary group-has-[:checked]:text-desa-dark-green transition-setup"
+        <div class="flex flex-col flex-1 shrink-0 gap-3">
+          <div class="grid grid-cols-2 gap-6">
+            <label
+              v-for="category in CATEGORY_OPTIONS"
+              :key="category.value"
+              class="group flex w-full items-center h-14 rounded-2xl p-4 ring-[1.5px] gap-2 has-[:checked]:ring-0 has-[:checked]:bg-desa-foreshadow transition-setup cursor-pointer"
+              :class="errors.category ? 'ring-red-500' : 'ring-desa-background'"
             >
-              {{ category.label }}
-            </span>
-
-            <div class="flex size-6 shrink-0">
-              <img
-                :src="category.icon.inactive"
-                class="size-6 group-has-[:checked]:hidden"
-                alt="icon"
+              <input
+                v-model="form.category"
+                :value="category.value"
+                type="radio"
+                name="category"
+                class="size-[18px] accent-desa-secondary checked:accent-desa-dark-green"
+                @change="clearFieldError('category')"
               />
-              <img
-                :src="category.icon.active"
-                class="size-6 hidden group-has-[:checked]:flex"
-                alt="icon"
-              />
-            </div>
-          </label>
+              <span
+                class="font-medium leading-5 w-full text-desa-secondary group-has-[:checked]:text-desa-dark-green transition-setup"
+              >
+                {{ category.label }}
+              </span>
+              <div class="flex size-6 shrink-0" aria-hidden="true">
+                <img
+                  :src="category.icon.inactive"
+                  class="size-6 group-has-[:checked]:hidden"
+                  alt=""
+                />
+                <img
+                  :src="category.icon.active"
+                  class="size-6 hidden group-has-[:checked]:flex"
+                  alt=""
+                />
+              </div>
+            </label>
+          </div>
+          <span
+            v-if="errors.category"
+            role="alert"
+            class="text-desa-red text-sm block"
+          >
+            {{ errors.category }}
+          </span>
         </div>
       </section>
+
       <hr class="border-desa-background" />
-      <section id="Nominal Bantuan" class="flex items-center justify-between">
+
+      <!-- Nominal -->
+      <section
+        aria-labelledby="label-amount"
+        class="flex items-center justify-between"
+      >
         <p
+          id="label-amount"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Nominal Bantuan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full">
-            <InputNumber
-              v-model="socialAssistance.amount"
-              placeholder="Ketik Nominal Bantuan"
-              :icon="IconRpSquareSecondaryGreen"
-              :filled-icon="IconRpSquareBlack"
-              :error-message="error?.amount"
-              :min="0"
-            />
-          </label>
+          <InputNumber
+            name="amount"
+            v-model="form.amount"
+            placeholder="Ketik Nominal Bantuan"
+            :icon="IconRpSquareSecondaryGreen"
+            :filled-icon="IconRpSquareBlack"
+            :error-message="errors.amount"
+            :min="0"
+            rupiah
+            @input="clearFieldError('amount')"
+          />
         </div>
       </section>
+
       <hr class="border-desa-background" />
+
+      <!-- Provider -->
       <section
-        id="Nama-Pemberi-Bantuan"
+        aria-labelledby="label-provider"
         class="flex items-center justify-between"
       >
         <p
+          id="label-provider"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Nama Pemberi Bantuan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <label class="relative group peer w-full">
-            <Input
-              v-model="socialAssistance.provider"
-              type="text"
-              placeholder="Ketik Pemberi Bantuan"
-              :icon="IconProfileSecondaryGreen"
-              :filled-icon="IconProfileBlack"
-              :error-message="error?.provider"
-            />
-          </label>
+          <Input
+            name="provider"
+            v-model="form.provider"
+            type="text"
+            placeholder="Ketik Pemberi Bantuan"
+            :icon="IconProfileSecondaryGreen"
+            :filled-icon="IconProfileBlack"
+            :error-message="errors.provider"
+            @input="clearFieldError('provider')"
+          />
         </div>
       </section>
+
       <hr class="border-desa-background" />
-      <section id="Deskripsi" class="flex items-center justify-between">
+
+      <!-- Deskripsi -->
+      <section
+        aria-labelledby="label-description"
+        class="flex items-center justify-between"
+      >
         <p
+          id="label-description"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Deskripsi Bantuan Sosial
         </p>
-        <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <textarea
-            v-model="socialAssistance.description"
-            name=""
-            id=""
+        <div class="flex-1 shrink-0">
+          <Textarea
+            name="description"
+            v-model="form.description"
             placeholder="Jelaskan lebih detail tentang bantuan"
-            rows="6"
-            class="appearance-none outline-none w-full rounded-2xl ring-[1.5px] ring-desa-background focus:ring-desa-black py-4 px-4 gap-2 font-medium placeholder:text-desa-secondary transition-all duration-300"
-          ></textarea>
+            :rows="6"
+            :error-message="errors.description"
+            @input="clearFieldError('description')"
+          />
         </div>
       </section>
+
       <hr class="border-desa-background" />
-      <section id="Ketersediaan" class="flex items-center justify-between">
+
+      <!-- Ketersediaan -->
+      <section
+        aria-labelledby="label-availability"
+        class="flex items-center justify-between"
+      >
         <p
+          id="label-availability"
           class="font-medium leading-5 text-desa-secondary w-[calc(424/904*100%)]"
         >
           Pilih Opsi Ketersediaan
         </p>
         <div class="flex flex-1 gap-6 shrink-0">
           <label
-            class="group flex w-full items-center h-14 rounded-2xl p-4 ring-[1.5px] ring-desa-background gap-2 has-[:checked]:ring-none has-[:checked]:bg-desa-foreshadow transition-setup"
+            v-for="option in AVAILABILITY_OPTIONS"
+            :key="String(option.value)"
+            class="group flex w-full items-center h-14 rounded-2xl p-4 ring-[1.5px] ring-desa-background gap-2 has-[:checked]:ring-0 has-[:checked]:bg-desa-foreshadow transition-setup cursor-pointer"
           >
             <input
-              v-model="socialAssistance.is_available"
-              :value="true"
+              :checked="form.is_available === option.value"
+              :value="option.value"
               type="radio"
-              id=""
-              class="flex size-[18px] shrink-0 accent-desa-secondary checked:accent-desa-dark-green transition-setup"
+              name="is_available"
+              class="size-[18px] shrink-0 accent-desa-secondary checked:accent-desa-dark-green"
+              @change="form.is_available = option.value"
             />
             <span
               class="font-medium leading-5 text-desa-secondary w-full group-has-[:checked]:text-desa-dark-green transition-setup"
             >
-              Tersedia
+              {{ option.label }}
             </span>
-            <div class="flex size-6 shrink-0">
+            <div class="flex size-6 shrink-0" aria-hidden="true">
               <img
-                src="@/assets/images/icons/tick-circle-secondary-green.svg"
-                class="size-6 flex group-has-[:checked]:hidden"
-                alt="icon"
+                :src="option.icon.inactive"
+                class="size-6 group-has-[:checked]:hidden"
+                alt=""
               />
               <img
-                src="@/assets/images/icons/tick-circle-dark-green.svg"
+                :src="option.icon.active"
                 class="size-6 hidden group-has-[:checked]:flex"
-                alt="icon"
-              />
-            </div>
-          </label>
-          <label
-            class="group flex w-full items-center h-14 rounded-2xl p-4 ring-[1.5px] ring-desa-background gap-2 has-[:checked]:ring-none has-[:checked]:bg-desa-foreshadow transition-setup"
-          >
-            <input
-              v-model="socialAssistance.is_available"
-              :value="false"
-              type="radio"
-              id=""
-              class="flex size-[18px] shrink-0 accent-desa-secondary checked:accent-desa-dark-green transition-setup"
-            />
-            <span
-              class="font-medium leading-5 text-desa-secondary w-full group-has-[:checked]:text-desa-dark-green transition-setup"
-            >
-              Tidak Tersedia
-            </span>
-            <div class="flex size-6 shrink-0">
-              <img
-                src="@/assets/images/icons/close-circle-secondary-green.svg"
-                class="size-6 flex group-has-[:checked]:hidden"
-                alt="icon"
-              />
-              <img
-                src="@/assets/images/icons/close-circle-secondary-green.svg"
-                class="size-6 hidden group-has-[:checked]:flex"
-                alt="icon"
+                alt=""
               />
             </div>
           </label>
         </div>
       </section>
+
       <hr class="border-desa-background w-[calc(100%+48px)] -mx-6" />
-      <section id="Buttons" class="flex items-center justify-end gap-4">
+
+      <!-- Actions -->
+      <section class="flex items-center justify-end gap-4">
         <RouterLink
-          :to="{
-            name: ROUTE_NAMES.MANAGE_SOCIAL_ASSISTANCE,
-            params: { id: socialAssistanceId },
-          }"
+          :to="{ name: ROUTE_NAMES.SOCIAL_ASSISTANCE }"
+          class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center font-medium text-white flex justify-center"
         >
-          <div
-            class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center flex justify-center font-medium text-white"
-          >
-            Batal, Tidak jadi
-          </div>
+          Batal, Tidak jadi
         </RouterLink>
         <Button
           type="submit"
-          label="Update Now"
-          :loading="loading"
-          :disabled="loading"
-          aria-label="Membuat Akun .."
+          label="Simpan Perubahan"
+          :loading="isSubmitting"
+          :disabled="isSubmitting"
+          aria-label="Simpan perubahan bantuan sosial"
           class="py-[18px] rounded-2xl disabled:bg-desa-grey w-[180px] text-center flex justify-center font-medium text-white bg-desa-dark-green transition-all duration-300"
         />
       </section>

@@ -5,7 +5,7 @@ import type { SocialAssistanceFormInput } from "@/schemas/social-assistance/soci
 type FormErrors = Partial<Record<keyof SocialAssistanceFormInput, string>>;
 
 const DEFAULT_FORM: SocialAssistanceFormInput = {
-  thumbnail: null as any,
+  thumbnail: null,
   name: "",
   category: "",
   amount: "",
