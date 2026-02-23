@@ -1,86 +1,74 @@
 <!-- src/components/ui/InputNumber.vue -->
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
-import { formatRupiah, parseRupiah } from "@/helpers/format";
+import { formatRupiah } from "@/utils/currency";
 
-const model = defineModel({
-  type: Number,
-  default: null,
+const model = defineModel<string | number>({ required: true });
+
+const props = defineProps<{
+  placeholder?: string;
+  errorMessage?: string;
+  icon: string;
+  filledIcon: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  rupiah?: boolean; // ← tambah prop mode rupiah
+}>();
+
+// Display value: jika rupiah mode dan ada value, format ke Rupiah
+const displayValue = computed(() => {
+  if (!props.rupiah || model.value === "" || model.value === null) {
+    return model.value;
+  }
+  return formatRupiah(model.value);
 });
 
-const props = defineProps({
-  placeholder: String,
-  errorMessage: [String, Array],
-  icon: String,
-  filledIcon: String,
-  autocomplete: {
-    type: String,
-    default: "off",
-  },
-  min: Number,
-  max: Number,
+function handleInput(e: Event) {
+  const raw = (e.target as HTMLInputElement).value;
 
-  /** 👇 optional */
-  currency: {
-    type: Boolean,
-    default: true, // default Rupiah
-  },
-});
-
-/**
- * STRING untuk UI
- * NUMBER untuk parent
- */
-const inputValue = computed({
-  get() {
-    if (model.value === null || model.value === undefined) return "";
-
-    return props.currency ? formatRupiah(model.value) : model.value;
-  },
-  set(value) {
-    if (!value) {
-      model.value = null;
-      return;
-    }
-
-    let numeric = props.currency ? parseRupiah(value) : Number(value);
-
-    if (props.min !== undefined && numeric < props.min) numeric = props.min;
-    if (props.max !== undefined && numeric > props.max) numeric = props.max;
-
-    model.value = isNaN(numeric) ? null : numeric;
-  },
-});
+  if (props.rupiah) {
+    // Strip semua non-digit sebelum simpan ke model
+    const numeric = raw.replace(/\D/g, "");
+    model.value = numeric === "" ? "" : Number(numeric);
+  } else {
+    model.value = raw;
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
     <div class="relative">
       <input
-        v-model="inputValue"
-        type="text"
-        inputmode="decimal"
-        :autocomplete="autocomplete"
+        :value="displayValue"
+        :type="rupiah ? 'text' : 'number'"
         :placeholder="placeholder"
-        class="peer w-full h-[56px] rounded-2xl pl-[48px] pr-4 border-[1.5px] border-desa-background font-medium leading-5 focus:ring-[1.5px] focus:ring-desa-dark-green focus:outline-none placeholder:text-desa-secondary transition-all duration-300"
+        :min="rupiah ? undefined : min"
+        :max="rupiah ? undefined : max"
+        :step="rupiah ? undefined : (step ?? 1)"
+        inputmode="numeric"
+        class="peer w-full h-[56px] rounded-2xl pl-[48px] pr-4 border-[1.5px] border-desa-background font-medium leading-5 focus:ring-[1.5px] focus:ring-desa-dark-green focus:outline-none placeholder:leading-5 placeholder:text-desa-secondary placeholder:font-medium transition-all duration-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         :class="{ 'border-red-500': errorMessage }"
+        @input="handleInput"
       />
-
-      <!-- icon kosong -->
       <img
         :src="icon"
-        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-0 peer-placeholder-shown:opacity-100 transition-all"
+        aria-hidden="true"
+        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-0 peer-placeholder-shown:opacity-100 transition-all duration-300"
       />
-
-      <!-- icon terisi -->
       <img
         :src="filledIcon"
-        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-100 peer-placeholder-shown:opacity-0 transition-all"
+        aria-hidden="true"
+        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-100 peer-placeholder-shown:opacity-0 transition-all duration-300"
       />
     </div>
-
-    <span v-if="errorMessage" class="font-medium text-sm text-desa-red">
-      {{ Array.isArray(errorMessage) ? errorMessage[0] : errorMessage }}
+    <span
+      v-if="errorMessage"
+      role="alert"
+      class="font-medium text-sm text-desa-red"
+    >
+      {{ errorMessage }}
     </span>
   </div>
 </template>
