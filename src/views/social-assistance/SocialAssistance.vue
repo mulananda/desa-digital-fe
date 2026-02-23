@@ -35,7 +35,7 @@ const socialAssistanceId = computed(() => route.params.id as string);
 /* =========================================================
  * 4. SERVER STATE (TanStack Query)
  * ========================================================= */
-const { socialAssistance, isPending, isFetching, error, refetch } =
+const { socialAssistance, isPending, isFetching, error, isError, refetch } =
   useSocialAssistance(socialAssistanceId);
 
 /* =========================================================
@@ -117,7 +117,12 @@ function closeDeleteModal() {
 
   <LoadingState v-if="isPending" label="Memuat detail bantuan sosial..." />
   <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
-  <ErrorState v-else-if="error" :message="error" @retry="refetch" />
+  <!-- Fix: error.message bukan error langsung -->
+  <ErrorState
+    v-else-if="isError && error"
+    :message="error.message"
+    @retry="refetch"
+  />
 
   <div v-else-if="socialAssistance" class="flex gap-[14px]">
     <section

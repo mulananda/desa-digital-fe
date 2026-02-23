@@ -1,113 +1,196 @@
+<!-- src/views/development/Development.vue -->
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import dayjs from "dayjs";
+
+import ErrorState from "@/components/ui/state/ErrorState.vue";
+import LoadingState from "@/components/ui/state/LoadingState.vue";
 import { useDevelopment } from "@/composables/development/useDevelopment";
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { formatDate, formatRupiah } from "@/helpers/format";
+import { ROUTE_NAMES } from "@/config/routes.config";
+import type { DevelopmentStatus } from "@/types/development.type";
 
 /* =========================================================
- * ROUTE PARAM
+ * ROUTE
  * ========================================================= */
-
-// Ambil instance route
 const route = useRoute();
-
-// Ambil ID dari URL dan pastikan bertipe string
+const router = useRouter();
 const id = computed(() => route.params.id as string);
 
 /* =========================================================
- * FETCH DATA DETAIL PENGAJUAN
+ * SERVER STATE
  * ========================================================= */
-
-// Mengambil detail pengajuan berdasarkan developmentId
-// isLoading   → pertama kali load
-// isFetching  → refetch data
-// error       → jika terjadi kesalahan
-const { development, isLoading, isFetching, error, refetch } =
+const { development, isPending, isFetching, isError, error, refetch } =
   useDevelopment(id);
 
-// Fungsi untuk retry fetch jika terjadi error
-const handleRefetch = () => refetch();
+/* =========================================================
+ * STATUS BADGE MAP — hapus duplikat v-if
+ * ========================================================= */
+const STATUS_BADGE: Record<
+  DevelopmentStatus,
+  { label: string; class: string }
+> = {
+  ongoing: { label: "Sedang Berjalan", class: "bg-desa-yellow" },
+  completed: { label: "Selesai", class: "bg-desa-green" },
+};
+
+const APPLICANT_STATUS_BADGE: Record<string, { label: string; class: string }> =
+  {
+    pending: { label: "Menunggu", class: "bg-desa-yellow" },
+    approved: { label: "Diterima", class: "bg-desa-green" },
+    rejected: { label: "Ditolak", class: "bg-desa-red" },
+  };
+
+const statusBadge = computed(() => {
+  const status = development.value?.status ?? "ongoing";
+  return STATUS_BADGE[status];
+});
+
+/* =========================================================
+ * TAB FILTER
+ * ========================================================= */
+type ApplicantTab = "all" | "pending" | "approved" | "rejected";
+
+const activeTab = ref<ApplicantTab>("all");
+
+const TAB_OPTIONS: Array<{ value: ApplicantTab; label: string }> = [
+  { value: "all", label: "Semua" },
+  { value: "pending", label: "Menunggu" },
+  { value: "approved", label: "Diterima" },
+  { value: "rejected", label: "Ditolak" },
+];
+
+const filteredApplicants = computed(() => {
+  const applicants = development.value?.development_applicants ?? [];
+  if (activeTab.value === "all") return applicants;
+  return applicants.filter((a) => a.status === activeTab.value);
+});
+
+/* =========================================================
+ * COMPUTED
+ * ========================================================= */
+const durationDays = computed(() => {
+  const dev = development.value;
+  if (!dev?.start_date || !dev?.end_date) return 0;
+  return dayjs(dev.end_date).diff(dayjs(dev.start_date), "day");
+});
+
+const DEFAULT_THUMBNAIL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+
+/* =========================================================
+ * HANDLERS
+ * ========================================================= */
+function handleEdit() {
+  router.push({ name: ROUTE_NAMES.DEVELOPMENT_EDIT, params: { id: id.value } });
+}
+
+function handleDelete() {
+  // TODO: implement delete dengan konfirmasi modal
+}
 </script>
+
 <template>
-  <div id="Header" class="flex items-center justify-between">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
     <div class="flex flex-col gap-2">
-      <div class="flex gap-1 items-center leading-5 text-desa-secondary">
-        <p
-          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
+      <nav class="flex gap-1 items-center leading-5 text-desa-secondary">
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.DEVELOPMENT }"
+          class="hover:text-desa-dark-green transition-colors capitalize"
         >
           Pembangunan Desa
-        </p>
-        <span>/</span>
-        <p
-          class="last-of-type:text-desa-dark-green last-of-type:font-semibold capitalize"
-        >
-          detail Pembangunan desa
-        </p>
-      </div>
+        </RouterLink>
+        <span aria-hidden="true">/</span>
+        <span class="text-desa-dark-green font-semibold capitalize">
+          Detail Pembangunan Desa
+        </span>
+      </nav>
       <h1 class="font-semibold text-2xl">Detail Pembangunan Desa</h1>
     </div>
+
     <div class="flex items-center gap-3">
       <button
-        data-modal="Modal-Delete"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
+        @click="handleDelete"
       >
-        <p class="font-medium text-white">Hapus Data</p>
+        <span class="font-medium text-white">Hapus Data</span>
         <img
           src="@/assets/images/icons/trash-white.svg"
           class="flex size-6 shrink-0"
-          alt="icon"
+          alt=""
+          aria-hidden="true"
         />
       </button>
-      <a
-        href="kd-pembangunan-desa-edit.html"
+      <button
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
+        @click="handleEdit"
       >
-        <p class="font-medium text-white">Ubah Data</p>
+        <span class="font-medium text-white">Ubah Data</span>
         <img
           src="@/assets/images/icons/edit-white.svg"
           class="flex size-6 shrink-0"
-          alt="icon"
+          alt=""
+          aria-hidden="true"
         />
-      </a>
+      </button>
     </div>
   </div>
-  <div class="flex flex-col gap-[14px]">
-    <section
-      id="Informasi"
-      class="flex flex-col rounded-3xl p-6 gap-6 bg-white"
-    >
+
+  <LoadingState v-if="isPending" label="Memuat detail pembangunan desa..." />
+  <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
+
+  <!-- Fix: error.message bukan error langsung -->
+  <ErrorState
+    v-else-if="isError && error"
+    :message="error.message"
+    @retry="refetch"
+  />
+
+  <div v-else-if="development" class="flex gap-[14px]">
+    <!-- Informasi Pembangunan -->
+    <section class="flex flex-col rounded-3xl p-6 gap-6 bg-white">
       <p class="font-medium leading-5 text-desa-secondary">
         Informasi Pembangunan
       </p>
+
       <div class="flex items-center justify-between">
         <div
           class="flex w-[120px] h-[100px] shrink-0 rounded-2xl overflow-hidden bg-desa-foreshadow"
         >
           <img
-            src="@/assets/images/thumbnails/kk-pembangunan-desa-1.png"
+            :src="development.thumbnail || DEFAULT_THUMBNAIL"
             class="w-full h-full object-cover"
-            alt="photo"
+            alt="Thumbnail pembangunan"
           />
         </div>
+
+        <!-- Fix: hapus 2x v-if → pakai statusBadge computed -->
         <div
-          class="badge rounded-full p-3 gap-2 flex justify-center shrink-0 bg-desa-yellow"
+          class="badge rounded-full p-3 gap-2 flex justify-center shrink-0"
+          :class="statusBadge.class"
         >
-          <span class="font-semibold text-xs text-white uppercase"
-            >belum dimulai</span
-          >
+          <span class="font-semibold text-xs text-white uppercase">
+            {{ statusBadge.label }}
+          </span>
         </div>
       </div>
+
       <div class="flex flex-col gap-[6px] w-full">
         <p class="font-semibold text-lg leading-[22.5px] line-clamp-1">
-          Pembangunan Jalanan Utama
+          {{ development.name }}
         </p>
         <p class="font-medium text-sm text-desa-secondary">
           Penanggung Jawab:
           <span class="font-medium text-base text-desa-dark-green">
-            Uciha Asep
+            {{ development.person_in_charge }}
           </span>
         </p>
       </div>
+
       <hr class="border-desa-foreshadow" />
+
       <div class="flex items-center justify-between">
         <div class="flex items-center w-full gap-3">
           <div
@@ -116,16 +199,18 @@ const handleRefetch = () => refetch();
             <img
               src="@/assets/images/icons/wallet-3-red.svg"
               class="flex size-6 shrink-0"
-              alt="icon"
+              alt=""
+              aria-hidden="true"
             />
           </div>
           <div class="flex flex-col gap-1 w-full">
+            <!-- Fix: hapus titik setelah Rp -->
             <p class="font-semibold text-xl leading-[22.5px] text-desa-red">
-              Rp499.000
+              Rp{{ formatRupiah(development.amount) }}
             </p>
-            <span class="font-medium text-desa-secondary">
-              Dana Pembangunan
-            </span>
+            <span class="font-medium text-desa-secondary"
+              >Dana Pembangunan</span
+            >
           </div>
         </div>
         <div
@@ -136,7 +221,9 @@ const handleRefetch = () => refetch();
           >
         </div>
       </div>
+
       <hr class="border-desa-foreshadow" />
+
       <div class="grid grid-cols-2 gap-3">
         <div class="flex items-center w-full gap-3">
           <div
@@ -145,18 +232,19 @@ const handleRefetch = () => refetch();
             <img
               src="@/assets/images/icons/calendar-2-dark-green.svg"
               class="flex size-6 shrink-0"
-              alt="icon"
+              alt=""
+              aria-hidden="true"
             />
           </div>
           <div class="flex flex-col gap-1 w-full">
             <p
               class="font-semibold text-xl leading-[22.5px] text-desa-dark-green"
             >
-              Mon, 24 Feb 2025
+              {{ formatDate(development.start_date) }}
             </p>
-            <span class="font-medium text-desa-secondary">
-              Tanggal Pelaksanaan
-            </span>
+            <span class="font-medium text-desa-secondary"
+              >Tanggal Pelaksanaan</span
+            >
           </div>
         </div>
         <div class="flex items-center w-full gap-3 justify-end">
@@ -164,11 +252,11 @@ const handleRefetch = () => refetch();
             <p
               class="font-semibold text-xl leading-[22.5px] text-desa-dark-green"
             >
-              Wed, 3 Sep 2025
+              {{ formatDate(development.end_date) }}
             </p>
-            <span class="font-medium text-desa-secondary">
-              Perkiraan Selesai
-            </span>
+            <span class="font-medium text-desa-secondary"
+              >Perkiraan Selesai</span
+            >
           </div>
           <div
             class="flex size-[52px] shrink-0 rounded-2xl bg-desa-foreshadow items-center justify-center"
@@ -176,12 +264,15 @@ const handleRefetch = () => refetch();
             <img
               src="@/assets/images/icons/calendar-2-dark-green.svg"
               class="flex size-6 shrink-0"
-              alt="icon"
+              alt=""
+              aria-hidden="true"
             />
           </div>
         </div>
       </div>
+
       <hr class="border-desa-foreshadow" />
+
       <div class="grid grid-cols-2 gap-3">
         <div class="flex items-center w-full gap-3">
           <div
@@ -190,24 +281,26 @@ const handleRefetch = () => refetch();
             <img
               src="@/assets/images/icons/clock-yellow.svg"
               class="flex size-6 shrink-0"
-              alt="icon"
+              alt=""
+              aria-hidden="true"
             />
           </div>
           <div class="flex flex-col gap-1 w-full">
             <p class="font-semibold text-xl leading-[22.5px] text-desa-yellow">
-              12:30 WIB
+              {{ dayjs(development.start_date).format("HH:mm") }} WIB
             </p>
-            <span class="font-medium text-desa-secondary">
-              Jam Pelaksanaan
-            </span>
+            <span class="font-medium text-desa-secondary">Jam Pelaksanaan</span>
           </div>
         </div>
         <div class="flex items-center w-full gap-3 justify-end">
           <div class="flex flex-col gap-1 w-full text-right">
             <p class="font-semibold text-xl leading-[22.5px] text-desa-yellow">
-              192 Hari
+              {{ durationDays }} Hari
             </p>
-            <span class="font-medium text-desa-secondary"> Days Needed </span>
+            <!-- Fix: "Days Needed" → Bahasa Indonesia -->
+            <span class="font-medium text-desa-secondary"
+              >Durasi Pengerjaan</span
+            >
           </div>
           <div
             class="flex size-[52px] shrink-0 rounded-2xl bg-desa-yellow/10 items-center justify-center"
@@ -215,12 +308,15 @@ const handleRefetch = () => refetch();
             <img
               src="@/assets/images/icons/clock-yellow.svg"
               class="flex size-6 shrink-0"
-              alt="icon"
+              alt=""
+              aria-hidden="true"
             />
           </div>
         </div>
       </div>
+
       <hr class="border-desa-foreshadow" />
+
       <div class="flex items-center w-full gap-3">
         <div
           class="flex size-[52px] shrink-0 rounded-2xl bg-desa-blue/10 items-center justify-center"
@@ -228,498 +324,169 @@ const handleRefetch = () => refetch();
           <img
             src="@/assets/images/icons/profile-2user-blue.svg"
             class="flex size-6 shrink-0"
-            alt="icon"
+            alt=""
+            aria-hidden="true"
           />
         </div>
         <div class="flex flex-col gap-1 w-full">
           <p class="font-semibold text-xl leading-[22.5px] text-desa-blue">
-            9.250 Warga
+            {{ development.development_applicants_count ?? 0 }} Pelamar
           </p>
-          <span class="font-medium text-desa-blue"> Total Partisipasi </span>
+          <span class="font-medium text-desa-blue">Total Pelamar</span>
         </div>
       </div>
+
       <hr class="border-desa-foreshadow" />
+
       <div class="flex flex-col gap-3">
         <p class="font-medium text-sm text-desa-secondary">
           Tentang Pembangunan
         </p>
-        <p class="font-medium leading-8">
-          Pembangunan Jalan Utama adalah langkah strategis untuk meningkatkan
-          aksesibilitas dan mobilitas masyarakat. Proyek ini bertujuan untuk
-          memperbaiki konektivitas antarwilayah, mendukung kegiatan ekonomi
-          lokal, serta menciptakan infrastruktur yang lebih aman dan nyaman bagi
-          pengguna jalan.
-        </p>
+        <p class="font-medium leading-8">{{ development.description }}</p>
       </div>
     </section>
-    <section
-      id="Applicants"
-      class="flex flex-col rounded-3xl p-6 gap-6 bg-white"
-    >
+
+    <!-- Applicants -->
+    <section class="flex flex-col rounded-3xl p-6 gap-6 bg-white">
       <div class="flex items-center justify-between">
         <p class="font-medium leading-5 text-desa-secondary">
-          Pengajuan Applicants
+          Pengajuan Pelamar
         </p>
-        <div id="Tabs-Button" class="grid grid-cols-4 gap-3">
-          <button data-content="All" class="tab-btn group active">
+
+        <!-- Fix: Tab filter functional -->
+        <div class="grid grid-cols-4 gap-3">
+          <button
+            v-for="tab in TAB_OPTIONS"
+            :key="tab.value"
+            type="button"
+            class="group"
+            :class="{ active: activeTab === tab.value }"
+            @click="activeTab = tab.value"
+          >
             <div
               class="flex items-center justify-center rounded-full border border-desa-background py-[14px] px-[18px] group-hover:bg-desa-black group-[.active]:bg-desa-black transition-setup"
             >
               <span
                 class="font-medium leading-5 text-desa-secondary group-hover:text-white group-[.active]:text-white transition-setup"
               >
-                SEMUA
-              </span>
-            </div>
-          </button>
-          <button data-content="All" class="tab-btn group">
-            <div
-              class="flex items-center justify-center rounded-full border border-desa-background py-[14px] px-[18px] group-hover:bg-desa-black group-[.active]:bg-desa-black transition-setup"
-            >
-              <span
-                class="font-medium leading-5 text-desa-secondary group-hover:text-white group-[.active]:text-white transition-setup"
-              >
-                MENUNGGU
-              </span>
-            </div>
-          </button>
-          <button data-content="All" class="tab-btn group">
-            <div
-              class="flex items-center justify-center rounded-full border border-desa-background py-[14px] px-[18px] group-hover:bg-desa-black group-[.active]:bg-desa-black transition-setup"
-            >
-              <span
-                class="font-medium leading-5 text-desa-secondary group-hover:text-white group-[.active]:text-white transition-setup"
-              >
-                DITERIMA
-              </span>
-            </div>
-          </button>
-          <button data-content="All" class="tab-btn group">
-            <div
-              class="flex items-center justify-center rounded-full border border-desa-background py-[14px] px-[18px] group-hover:bg-desa-black group-[.active]:bg-desa-black transition-setup"
-            >
-              <span
-                class="font-medium leading-5 text-desa-secondary group-hover:text-white group-[.active]:text-white transition-setup"
-              >
-                DITOLAK
+                {{ tab.label }}
               </span>
             </div>
           </button>
         </div>
       </div>
-      <div id="Tabs-Content" class="flex flex-col">
-        <div id="All" class="flex flex-col gap-6">
-          <div
-            class="card flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
-          >
-            <div class="flex items-center justify-between">
-              <p class="flex items-center gap-1">
-                <img
-                  src="@/assets/images/icons/calendar-2-secondary-green.svg"
-                  class="flex size-[18px] shrink-0"
-                  alt="icon"
-                />
-                <span class="font-medium text-sm text-desa-secondary"
-                  >Tue, 09 Jan 2025</span
-                >
-              </p>
-              <div
-                class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-yellow"
-              >
-                <span class="font-semibold text-xs text-white uppercase"
-                  >Menunggu</span
-                >
-              </div>
-            </div>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-6 justify-between">
-              <div class="flex items-center gap-3 w-[302px] shrink-0">
-                <div
-                  class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
-                >
-                  <img
-                    src="@/assets/images/photos/kk-photo-1.png"
-                    class="w-full h-full object-cover"
-                    alt="icon"
-                  />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <p class="font-semibold text-lg leading-5 text-desa-black">
-                    Feri Prio Utomo
-                  </p>
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/briefcase-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >Tukang Bangunan</span
-                    >
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 w-[236px] shrink-0">
-                <div class="flex flex-col gap-1">
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/keyboard-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >NIK</span
-                    >
-                  </p>
-                  <p
-                    class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
-                  >
-                    30183910948390193
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 justify-end shrink-0">
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-red/10"
-                >
-                  <span class="font-medium text-desa-red">Tolak</span>
-                </button>
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-dark-green"
-                >
-                  <span class="font-medium text-white">Setuju</span>
-                </button>
-              </div>
+
+      <div class="flex flex-col gap-6">
+        <div
+          v-for="applicant in filteredApplicants"
+          :key="applicant.id"
+          class="flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
+        >
+          <div class="flex items-center justify-between">
+            <p class="flex items-center gap-1">
+              <img
+                src="@/assets/images/icons/calendar-2-secondary-green.svg"
+                class="flex size-[18px] shrink-0"
+                alt=""
+                aria-hidden="true"
+              />
+              <span class="font-medium text-sm text-desa-secondary">
+                {{ formatDate(applicant.created_at) }}
+              </span>
+            </p>
+
+            <!-- Fix: hapus 3x v-if → pakai APPLICANT_STATUS_BADGE map -->
+            <div
+              class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0"
+              :class="APPLICANT_STATUS_BADGE[applicant.status]?.class"
+            >
+              <span class="font-semibold text-xs text-white uppercase">
+                {{ APPLICANT_STATUS_BADGE[applicant.status]?.label }}
+              </span>
             </div>
           </div>
-          <div
-            class="card flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
-          >
-            <div class="flex items-center justify-between">
-              <p class="flex items-center gap-1">
-                <img
-                  src="@/assets/images/icons/calendar-2-secondary-green.svg"
-                  class="flex size-[18px] shrink-0"
-                  alt="icon"
-                />
-                <span class="font-medium text-sm text-desa-secondary"
-                  >Tue, 09 Jan 2025</span
-                >
-              </p>
+
+          <hr class="border-desa-background" />
+
+          <div class="flex items-center gap-6 justify-between">
+            <div class="flex items-center gap-3 w-[302px] shrink-0">
               <div
-                class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-yellow"
+                class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
               >
-                <span class="font-semibold text-xs text-white uppercase"
-                  >Menunggu</span
-                >
+                <img
+                  :src="
+                    applicant.user.head_of_family?.profile_picture ||
+                    DEFAULT_THUMBNAIL
+                  "
+                  class="w-full h-full object-cover"
+                  alt="Foto pelamar"
+                />
+              </div>
+              <div class="flex flex-col gap-1">
+                <p class="font-semibold text-lg leading-5 text-desa-black">
+                  {{ applicant.user.name }}
+                </p>
+                <p class="flex items-center gap-1">
+                  <img
+                    src="@/assets/images/icons/briefcase-secondary-green.svg"
+                    class="flex size-[18px] shrink-0"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span class="font-medium text-sm text-desa-secondary">
+                    {{ applicant.user.head_of_family?.occupation }}
+                  </span>
+                </p>
               </div>
             </div>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-6 justify-between">
-              <div class="flex items-center gap-3 w-[302px] shrink-0">
-                <div
-                  class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
-                >
+
+            <div class="flex items-center gap-3 w-[236px] shrink-0">
+              <div class="flex flex-col gap-1">
+                <p class="flex items-center gap-1">
                   <img
-                    src="@/assets/images/photos/kk-photo-1.png"
-                    class="w-full h-full object-cover"
-                    alt="icon"
+                    src="@/assets/images/icons/keyboard-secondary-green.svg"
+                    class="flex size-[18px] shrink-0"
+                    alt=""
+                    aria-hidden="true"
                   />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <p class="font-semibold text-lg leading-5 text-desa-black">
-                    Feri Prio Utomo
-                  </p>
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/briefcase-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >Tukang Bangunan</span
-                    >
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 w-[236px] shrink-0">
-                <div class="flex flex-col gap-1">
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/keyboard-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >NIK</span
-                    >
-                  </p>
-                  <p
-                    class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
+                  <span class="font-medium text-sm text-desa-secondary"
+                    >NIK</span
                   >
-                    30183910948390193
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 justify-end shrink-0">
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-red/10"
+                </p>
+                <p
+                  class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
                 >
-                  <span class="font-medium text-desa-red">Tolak</span>
-                </button>
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-dark-green"
-                >
-                  <span class="font-medium text-white">Setuju</span>
-                </button>
+                  {{ applicant.user.head_of_family?.identity_number }}
+                </p>
               </div>
+            </div>
+
+            <div
+              v-if="applicant.status === 'pending'"
+              class="flex items-center gap-3 justify-end shrink-0"
+            >
+              <button
+                type="button"
+                class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-red/10"
+              >
+                <span class="font-medium text-desa-red">Tolak</span>
+              </button>
+              <button
+                type="button"
+                class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-dark-green"
+              >
+                <span class="font-medium text-white">Setuju</span>
+              </button>
             </div>
           </div>
-          <div
-            class="card flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
-          >
-            <div class="flex items-center justify-between">
-              <p class="flex items-center gap-1">
-                <img
-                  src="@/assets/images/icons/calendar-2-secondary-green.svg"
-                  class="flex size-[18px] shrink-0"
-                  alt="icon"
-                />
-                <span class="font-medium text-sm text-desa-secondary"
-                  >Tue, 09 Jan 2025</span
-                >
-              </p>
-              <div
-                class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-yellow"
-              >
-                <span class="font-semibold text-xs text-white uppercase"
-                  >Menunggu</span
-                >
-              </div>
-            </div>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-6 justify-between">
-              <div class="flex items-center gap-3 w-[302px] shrink-0">
-                <div
-                  class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
-                >
-                  <img
-                    src="@/assets/images/photos/kk-photo-1.png"
-                    class="w-full h-full object-cover"
-                    alt="icon"
-                  />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <p class="font-semibold text-lg leading-5 text-desa-black">
-                    Feri Prio Utomo
-                  </p>
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/briefcase-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >Tukang Bangunan</span
-                    >
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 w-[236px] shrink-0">
-                <div class="flex flex-col gap-1">
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/keyboard-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >NIK</span
-                    >
-                  </p>
-                  <p
-                    class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
-                  >
-                    30183910948390193
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 justify-end shrink-0">
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-red/10"
-                >
-                  <span class="font-medium text-desa-red">Tolak</span>
-                </button>
-                <button
-                  class="flex items-center w-[120px] justify-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-dark-green"
-                >
-                  <span class="font-medium text-white">Setuju</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div
-            class="card flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
-          >
-            <div class="flex items-center justify-between">
-              <p class="flex items-center gap-1">
-                <img
-                  src="@/assets/images/icons/calendar-2-secondary-green.svg"
-                  class="flex size-[18px] shrink-0"
-                  alt="icon"
-                />
-                <span class="font-medium text-sm text-desa-secondary"
-                  >Tue, 09 Jan 2025</span
-                >
-              </p>
-              <div
-                class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-red"
-              >
-                <span class="font-semibold text-xs text-white uppercase"
-                  >Ditolak</span
-                >
-              </div>
-            </div>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-6 justify-between">
-              <div class="flex items-center gap-3 w-[302px] shrink-0">
-                <div
-                  class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
-                >
-                  <img
-                    src="@/assets/images/photos/kk-photo-1.png"
-                    class="w-full h-full object-cover"
-                    alt="icon"
-                  />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <p class="font-semibold text-lg leading-5 text-desa-black">
-                    Feri Prio Utomo
-                  </p>
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/briefcase-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >Tukang Bangunan</span
-                    >
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 w-[236px] shrink-0">
-                <div class="flex flex-col gap-1">
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/keyboard-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >NIK</span
-                    >
-                  </p>
-                  <p
-                    class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
-                  >
-                    30183910948390193
-                  </p>
-                </div>
-              </div>
-              <div
-                class="flex items-center gap-3 justify-end shrink-0 w-[252px]"
-              >
-                <a
-                  href="#"
-                  class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-                >
-                  <span class="font-medium text-white">Manage</span>
-                </a>
-              </div>
-            </div>
-          </div>
-          <div
-            class="card flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
-          >
-            <div class="flex items-center justify-between">
-              <p class="flex items-center gap-1">
-                <img
-                  src="@/assets/images/icons/calendar-2-secondary-green.svg"
-                  class="flex size-[18px] shrink-0"
-                  alt="icon"
-                />
-                <span class="font-medium text-sm text-desa-secondary"
-                  >Tue, 09 Jan 2025</span
-                >
-              </p>
-              <div
-                class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-dark-green"
-              >
-                <span class="font-semibold text-xs text-white uppercase"
-                  >Diterima</span
-                >
-              </div>
-            </div>
-            <hr class="border-desa-background" />
-            <div class="flex items-center gap-6 justify-between">
-              <div class="flex items-center gap-3 w-[302px] shrink-0">
-                <div
-                  class="flex size-[54px] rounded-full bg-desa-foreshadow overflow-hidden"
-                >
-                  <img
-                    src="@/assets/images/photos/kk-photo-1.png"
-                    class="w-full h-full object-cover"
-                    alt="icon"
-                  />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <p class="font-semibold text-lg leading-5 text-desa-black">
-                    Feri Prio Utomo
-                  </p>
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/briefcase-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >Tukang Bangunan</span
-                    >
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 w-[236px] shrink-0">
-                <div class="flex flex-col gap-1">
-                  <p class="flex items-center gap-1">
-                    <img
-                      src="@/assets/images/icons/keyboard-secondary-green.svg"
-                      class="flex size-[18px] shrink-0"
-                      alt="icon"
-                    />
-                    <span class="font-medium text-sm text-desa-secondary"
-                      >NIK</span
-                    >
-                  </p>
-                  <p
-                    class="font-semibold text-lg leading-5 text-desa-dark-green text-nowrap"
-                  >
-                    30183910948390193
-                  </p>
-                </div>
-              </div>
-              <div
-                class="flex items-center gap-3 justify-end shrink-0 w-[252px]"
-              >
-                <a
-                  href="#"
-                  class="flex items-center shrink-0 gap-[10px] rounded-2xl py-4 px-6 bg-desa-black"
-                >
-                  <span class="font-medium text-white">Manage</span>
-                </a>
-              </div>
-            </div>
-          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-if="filteredApplicants.length === 0"
+          class="flex justify-center py-12 text-desa-secondary font-medium"
+        >
+          Tidak ada data pelamar
         </div>
       </div>
     </section>

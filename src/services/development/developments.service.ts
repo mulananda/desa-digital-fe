@@ -71,3 +71,20 @@ export async function fetchDevelopments(
     throw error;
   }
 }
+
+/**
+ * GET DETAIL BY ID
+ */
+export const getDevelopmentById = async (id: string): Promise<Development> => {
+  const { data } = await axiosInstance.get<{ data: Development }>(
+    `/development/${id}`,
+  );
+  return data.data;
+};
+
+/**
+ * DELETE BY ID
+ */
+export const deleteDevelopment = async (id: string): Promise<void> => {
+  await axiosInstance.delete(`/development/${id}`);
+};

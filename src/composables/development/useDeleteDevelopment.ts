@@ -1,8 +1,9 @@
+// src/composables/development/useDeleteDevelopments.ts
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 
-import { deleteDevelopment } from "@/services/development/development.service";
 import { developmentKeys } from "@/queryKeys/development.keys";
 import { notificationService } from "@/services/notification.service";
+import { deleteDevelopment } from "@/services/development/developments.service";
 
 export const useDeleteDevelopment = () => {
   const queryClient = useQueryClient();
@@ -20,7 +21,7 @@ export const useDeleteDevelopment = () => {
       });
 
       queryClient.removeQueries({
-        queryKey: developmentKeys.details(id),
+        queryKey: developmentKeys.detail(id),
       });
     },
 
