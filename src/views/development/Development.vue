@@ -1,6 +1,6 @@
 <!-- src/views/development/Development.vue -->
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import dayjs from "dayjs";
 
@@ -25,7 +25,7 @@ const { development, isPending, isFetching, isError, error, refetch } =
   useDevelopment(id);
 
 /* =========================================================
- * STATUS BADGE MAP — hapus duplikat v-if
+ * STATUS BADGE MAP
  * ========================================================= */
 const STATUS_BADGE: Record<
   DevelopmentStatus,
@@ -66,6 +66,31 @@ const filteredApplicants = computed(() => {
   if (activeTab.value === "all") return applicants;
   return applicants.filter((a) => a.status === activeTab.value);
 });
+
+/* =========================================================
+ * APPLICANT LIMIT
+ * ========================================================= */
+const APPLICANT_LIMIT = 5;
+const showAllApplicants = ref(false);
+
+// Reset showAll saat tab berubah
+watch(activeTab, () => {
+  showAllApplicants.value = false;
+});
+
+const visibleApplicants = computed(() =>
+  showAllApplicants.value
+    ? filteredApplicants.value
+    : filteredApplicants.value.slice(0, APPLICANT_LIMIT),
+);
+
+const hasMore = computed(
+  () => filteredApplicants.value.length > APPLICANT_LIMIT,
+);
+
+const remainingCount = computed(
+  () => filteredApplicants.value.length - APPLICANT_LIMIT,
+);
 
 /* =========================================================
  * COMPUTED
@@ -112,6 +137,7 @@ function handleDelete() {
 
     <div class="flex items-center gap-3">
       <button
+        type="button"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
         @click="handleDelete"
       >
@@ -124,6 +150,7 @@ function handleDelete() {
         />
       </button>
       <button
+        type="button"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
         @click="handleEdit"
       >
@@ -140,8 +167,6 @@ function handleDelete() {
 
   <LoadingState v-if="isPending" label="Memuat detail pembangunan desa..." />
   <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
-
-  <!-- Fix: error.message bukan error langsung -->
   <ErrorState
     v-else-if="isError && error"
     :message="error.message"
@@ -165,8 +190,6 @@ function handleDelete() {
             alt="Thumbnail pembangunan"
           />
         </div>
-
-        <!-- Fix: hapus 2x v-if → pakai statusBadge computed -->
         <div
           class="badge rounded-full p-3 gap-2 flex justify-center shrink-0"
           :class="statusBadge.class"
@@ -204,7 +227,6 @@ function handleDelete() {
             />
           </div>
           <div class="flex flex-col gap-1 w-full">
-            <!-- Fix: hapus titik setelah Rp -->
             <p class="font-semibold text-xl leading-[22.5px] text-desa-red">
               Rp{{ formatRupiah(development.amount) }}
             </p>
@@ -297,7 +319,6 @@ function handleDelete() {
             <p class="font-semibold text-xl leading-[22.5px] text-desa-yellow">
               {{ durationDays }} Hari
             </p>
-            <!-- Fix: "Days Needed" → Bahasa Indonesia -->
             <span class="font-medium text-desa-secondary"
               >Durasi Pengerjaan</span
             >
@@ -353,7 +374,6 @@ function handleDelete() {
           Pengajuan Pelamar
         </p>
 
-        <!-- Fix: Tab filter functional -->
         <div class="grid grid-cols-4 gap-3">
           <button
             v-for="tab in TAB_OPTIONS"
@@ -378,7 +398,7 @@ function handleDelete() {
 
       <div class="flex flex-col gap-6">
         <div
-          v-for="applicant in filteredApplicants"
+          v-for="applicant in visibleApplicants"
           :key="applicant.id"
           class="flex flex-col gap-6 rounded-3xl p-6 border border-desa-background bg-white"
         >
@@ -394,8 +414,6 @@ function handleDelete() {
                 {{ formatDate(applicant.created_at) }}
               </span>
             </p>
-
-            <!-- Fix: hapus 3x v-if → pakai APPLICANT_STATUS_BADGE map -->
             <div
               class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0"
               :class="APPLICANT_STATUS_BADGE[applicant.status]?.class"
@@ -480,6 +498,22 @@ function handleDelete() {
             </div>
           </div>
         </div>
+
+        <!-- View All / Sembunyikan -->
+        <button
+          v-if="hasMore || showAllApplicants"
+          type="button"
+          class="flex items-center justify-center h-14 rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green transition-all duration-300"
+          @click="showAllApplicants = !showAllApplicants"
+        >
+          <span class="font-medium leading-5 text-white">
+            {{
+              showAllApplicants
+                ? "Sembunyikan"
+                : `Lihat Semua (${remainingCount} lainnya)`
+            }}
+          </span>
+        </button>
 
         <!-- Empty state -->
         <div
