@@ -56,7 +56,8 @@ defineProps({
     </div>
 
     <span v-if="errorMessage" class="font-medium text-sm text-desa-red">
-      {{ errorMessage[0] }}
+      <!-- {{ Array.isArray(errorMessage) ? errorMessage.join(", ") : errorMessage }} -->
+      {{ Array.isArray(errorMessage) ? errorMessage[0] : errorMessage }}
     </span>
   </div>
 </template>
