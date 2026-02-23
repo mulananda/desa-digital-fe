@@ -1,3 +1,4 @@
+// src/composables/social-assistance-recipients/useRecipientApproval.ts
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   approveRecipient,
@@ -11,49 +12,50 @@ import { notificationService } from "@/services/notification.service";
 export function useRecipientApproval(id: string) {
   const queryClient = useQueryClient();
 
+  // Shared invalidation — DRY
+  function invalidateDetail() {
+    queryClient.invalidateQueries({
+      queryKey: socialAssistanceRecipientKeys.detail(id),
+    });
+  }
+
+  // Shared error handler — DRY
+  function handleError(error: unknown, fallbackMessage: string) {
+    const message = (error as any)?.response?.data?.message ?? fallbackMessage;
+    notificationService.error(message);
+  }
+
   const approveMutation = useMutation({
     mutationFn: (payload: ApprovePayload) => approveRecipient(id, payload),
 
-    onSuccess: (res) => {
+    onSuccess: () => {
       notificationService.success("Pengajuan Bansos Berhasil Disetujui");
-
-      // refresh list
-      queryClient.invalidateQueries({
-        queryKey: socialAssistanceRecipientKeys.detail(id),
-      });
+      invalidateDetail();
     },
 
-    onError: (error: any) => {
-      notificationService.error(
-        error?.response?.data?.message ?? "Gagal menyetujui data",
-      );
+    onError: (error: unknown) => {
+      handleError(error, "Gagal menyetujui data");
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (payload: RejectPayload) => rejectRecipient(id, payload),
 
-    onSuccess: (res) => {
+    onSuccess: () => {
       notificationService.success("Pengajuan Bansos Berhasil Ditolak");
-
-      queryClient.invalidateQueries({
-        queryKey: socialAssistanceRecipientKeys.detail(id),
-      });
+      invalidateDetail();
     },
-    onError: (error: any) => {
-      notificationService.error(
-        error?.response?.data?.message ?? "Gagal menolak data",
-      );
+
+    onError: (error: unknown) => {
+      handleError(error, "Gagal menolak data");
     },
   });
 
   return {
     approve: approveMutation.mutate,
     reject: rejectMutation.mutate,
-
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
-
     approveError: approveMutation.error,
     rejectError: rejectMutation.error,
   };

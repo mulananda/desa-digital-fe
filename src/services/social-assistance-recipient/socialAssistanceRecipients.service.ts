@@ -30,6 +30,7 @@ function validateListResponse(
 }
 
 /**
+ * GET LIST
  * Fetch paginated social assistance recipients
  * ✅ Supports request cancellation
  * ✅ Includes error handling
@@ -82,3 +83,16 @@ export async function fetchSocialAssistanceRecipients(
     throw error;
   }
 }
+
+/**
+ * GET DETAIL BY ID
+ */
+export const getSocialAssistanceRecipientById = async (
+  id: string,
+): Promise<SocialAssistanceRecipient> => {
+  const { data } = await axiosInstance.get<{
+    data: SocialAssistanceRecipient; // ← tambah generic type
+  }>(`/social-assistance-recipient/${id}`);
+
+  return data.data;
+};
