@@ -14,10 +14,6 @@ const props = defineProps<{
   item: Development;
 }>();
 
-const showModalDelete = ref(false);
-
-const { deleteDevelopment, isDeleting } = useDeleteDevelopment();
-
 // ✅ NEW: Safe image URL validation
 const safeImageUrl = computed(() => {
   if (!props.item?.thumbnail) {
@@ -39,18 +35,6 @@ const handleImageError = (e: Event) => {
   const img = e.target as HTMLImageElement;
   img.src = DEFAULT_THUMBNAIL;
 };
-
-// delete handler
-async function handleDelete() {
-  if (!props.item.id) return;
-  try {
-    await deleteDevelopment(props.item.id);
-
-    showModalDelete.value = false;
-  } catch {
-    // kalau error → modal tetap terbuka (UX lebih benar)
-  }
-}
 </script>
 
 <template>
@@ -96,25 +80,6 @@ async function handleDelete() {
         >
           <span class="font-medium text-white">Manage</span>
         </RouterLink>
-        <button
-          class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
-          @click="showModalDelete = true"
-        >
-          <p class="font-medium text-white">Hapus Data</p>
-          <img
-            src="@/assets/images/icons/trash-white.svg"
-            class="flex size-6 shrink-0"
-            alt="icon"
-          />
-        </button>
-        <ModalDelete
-          v-model="showModalDelete"
-          title="Hapus Pembangunan?"
-          description="Tindakan ini permanen dan tidak bisa dibatalkan!"
-          :loading="isDeleting"
-          confirm-text="Iya Hapus"
-          @confirm="handleDelete"
-        />
       </div>
     </div>
     <hr class="border-desa-background" />
