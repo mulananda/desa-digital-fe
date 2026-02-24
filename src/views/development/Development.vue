@@ -10,6 +10,8 @@ import { useDevelopment } from "@/composables/development/useDevelopment";
 import { formatDate, formatRupiah } from "@/helpers/format";
 import { ROUTE_NAMES } from "@/config/routes.config";
 import type { DevelopmentStatus } from "@/types/development.type";
+import { useDeleteDevelopment } from "@/composables/development/useDeleteDevelopment";
+import ModalDelete from "@/components/ui/ModalDelete.vue";
 
 /* =========================================================
  * ROUTE
@@ -23,6 +25,8 @@ const id = computed(() => route.params.id as string);
  * ========================================================= */
 const { development, isPending, isFetching, isError, error, refetch } =
   useDevelopment(id);
+
+const { deleteDevelopment, isDeleting } = useDeleteDevelopment();
 
 /* =========================================================
  * STATUS BADGE MAP
@@ -111,8 +115,17 @@ function handleEdit() {
   router.push({ name: ROUTE_NAMES.DEVELOPMENT_EDIT, params: { id: id.value } });
 }
 
-function handleDelete() {
-  // TODO: implement delete dengan konfirmasi modal
+const showModalDelete = ref(false);
+
+async function handleDelete() {
+  if (!id.value) return;
+  try {
+    await deleteDevelopment(id.value);
+
+    showModalDelete.value = false;
+  } catch {
+    // kalau error → modal tetap terbuka (UX lebih benar)
+  }
 }
 </script>
 
@@ -137,18 +150,24 @@ function handleDelete() {
 
     <div class="flex items-center gap-3">
       <button
-        type="button"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-red"
-        @click="handleDelete"
+        @click="showModalDelete = true"
       >
-        <span class="font-medium text-white">Hapus Data</span>
+        <p class="font-medium text-white">Hapus Data</p>
         <img
           src="@/assets/images/icons/trash-white.svg"
           class="flex size-6 shrink-0"
-          alt=""
-          aria-hidden="true"
+          alt="icon"
         />
       </button>
+      <ModalDelete
+        v-model="showModalDelete"
+        title="Hapus Pembangunan?"
+        description="Tindakan ini permanen dan tidak bisa dibatalkan!"
+        :loading="isDeleting"
+        confirm-text="Iya Hapus"
+        @confirm="handleDelete"
+      />
       <button
         type="button"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
@@ -166,7 +185,7 @@ function handleDelete() {
   </div>
 
   <LoadingState v-if="isPending" label="Memuat detail pembangunan desa..." />
-  <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
+  <!-- <LoadingState v-else-if="isFetching" label="Memperbarui detail..." /> -->
   <ErrorState
     v-else-if="isError && error"
     :message="error.message"
