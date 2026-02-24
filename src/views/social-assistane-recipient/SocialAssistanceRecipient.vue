@@ -135,7 +135,7 @@ function handleReject() {
     v-if="isPending"
     label="Memuat detail penerima bantuan sosial..."
   />
-  <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
+  <!-- <LoadingState v-else-if="isFetching" label="Memperbarui detail..." /> -->
 
   <!-- Fix: error.message bukan error langsung -->
   <ErrorState

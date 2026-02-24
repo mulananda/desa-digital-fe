@@ -139,7 +139,7 @@ async function confirmDelete() {
   </div>
 
   <LoadingState v-if="isPending" label="Memuat detail bantuan sosial..." />
-  <LoadingState v-else-if="isFetching" label="Memperbarui detail..." />
+  <!-- <LoadingState v-else-if="isFetching" label="Memperbarui detail..." /> -->
   <ErrorState
     v-else-if="isError && error"
     :message="error.message"

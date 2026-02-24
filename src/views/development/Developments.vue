@@ -158,7 +158,7 @@ watchDebounced(
 
       <!-- STATES -->
       <LoadingState v-if="isLoading" label="Memuat data pembangunan..." />
-      <LoadingState v-else-if="isFetching" label="Memperbarui data..." />
+      <!-- <LoadingState v-else-if="isFetching" label="Memperbarui data..." /> -->
 
       <ErrorState v-else-if="isError" :message="error" @retry="refetch" />
 
