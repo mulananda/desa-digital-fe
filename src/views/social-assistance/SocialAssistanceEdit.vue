@@ -1,12 +1,12 @@
 <!-- src/views/social-assistance/SocialAssistanceEdit.vue -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
 import InputFile from "@/components/ui/InputFile.vue";
 import Input from "@/components/ui/Input.vue";
-import InputNumber from "@/components/ui/InputNumber.vue";
+import InputCurrency from "@/components/ui/InputCurrency.vue";
 import Textarea from "@/components/ui/Textarea.vue";
 import Button from "@/components/ui/Button.vue";
 
@@ -40,6 +40,7 @@ import {
  * ROUTE
  * ========================= */
 const route = useRoute();
+const router = useRouter();
 const id = route.params.id as string;
 
 /* =========================
@@ -318,7 +319,7 @@ async function handleSubmit() {
           Nominal Bantuan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <InputNumber
+          <InputCurrency
             name="amount"
             v-model="form.amount"
             placeholder="Ketik Nominal Bantuan"
@@ -436,12 +437,19 @@ async function handleSubmit() {
 
       <!-- Actions -->
       <section class="flex items-center justify-end gap-4">
-        <RouterLink
-          :to="{ name: ROUTE_NAMES.SOCIAL_ASSISTANCE }"
-          class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center font-medium text-white flex justify-center"
+        <button
+          type="button"
+          :disabled="isSubmitting"
+          class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center flex justify-center font-medium text-white disabled:opacity-60"
+          @click="
+            router.push({
+              name: ROUTE_NAMES.MANAGE_SOCIAL_ASSISTANCE,
+              params: { id: socialAssistance.id },
+            })
+          "
         >
           Batal, Tidak jadi
-        </RouterLink>
+        </button>
         <Button
           type="submit"
           label="Simpan Perubahan"

@@ -1,11 +1,13 @@
 <!-- src/views/social-assistance/SocialAssistanceCreate.vue -->
 <script setup lang="ts">
 import { ref } from "vue";
+
+import { useRouter } from "vue-router";
 import { ROUTE_NAMES } from "@/config/routes.config";
 
 import InputFile from "@/components/ui/InputFile.vue";
 import Input from "@/components/ui/Input.vue";
-import InputNumber from "@/components/ui/InputNumber.vue";
+import InputCurrency from "@/components/ui/InputCurrency.vue";
 import Textarea from "@/components/ui/Textarea.vue";
 import Button from "@/components/ui/Button.vue";
 
@@ -33,6 +35,8 @@ import {
 } from "@/schemas/social-assistance/socialAssistance.schema";
 import { useSocialAssistanceForm } from "@/schemas/social-assistance/useSocialAssistanceForm";
 import { extractBackendErrors } from "@/utils/extractBackendErrors";
+
+const router = useRouter();
 
 /* =========================
  * CONSTANTS
@@ -292,7 +296,7 @@ async function handleSubmit() {
           Nominal Bantuan
         </p>
         <div class="flex flex-col gap-3 flex-1 shrink-0">
-          <InputNumber
+          <InputCurrency
             name="amount"
             v-model="form.amount"
             placeholder="Ketik Nominal Bantuan"
@@ -417,12 +421,18 @@ async function handleSubmit() {
 
       <!-- Actions -->
       <section class="flex items-center justify-end gap-4">
-        <RouterLink
-          :to="{ name: ROUTE_NAMES.SOCIAL_ASSISTANCE }"
-          class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center font-medium text-white flex justify-center"
+        <button
+          type="button"
+          :disabled="isPending"
+          class="py-[18px] rounded-2xl bg-desa-red w-[180px] text-center flex justify-center font-medium text-white disabled:opacity-60"
+          @click="
+            router.push({
+              name: ROUTE_NAMES.SOCIAL_ASSISTANCE,
+            })
+          "
         >
           Batal, Tidak jadi
-        </RouterLink>
+        </button>
         <Button
           type="submit"
           label="Buat Sekarang"
