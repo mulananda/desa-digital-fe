@@ -1,73 +1,141 @@
 <!-- src/components/ui/InputNumber.vue -->
 <script setup lang="ts">
 import { computed } from "vue";
-import { formatRupiah } from "@/utils/currency";
 
-const model = defineModel<string | number>({ required: true });
-
-const props = defineProps<{
+interface Props {
+  modelValue?: number | null;
+  name?: string;
   placeholder?: string;
   errorMessage?: string;
-  icon: string;
-  filledIcon: string;
+  disabled?: boolean;
   min?: number;
   max?: number;
   step?: number;
-  rupiah?: boolean; // ← tambah prop mode rupiah
-}>();
+  suffix?: string;
+  icon?: string;
+  filledIcon?: string;
+}
 
-// Display value: jika rupiah mode dan ada value, format ke Rupiah
-const displayValue = computed(() => {
-  if (!props.rupiah || model.value === "" || model.value === null) {
-    return model.value;
-  }
-  return formatRupiah(model.value);
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: null,
+  name: "number",
+  placeholder: "Ketik angka",
+  errorMessage: "",
+  disabled: false,
+  min: undefined,
+  max: undefined,
+  step: 1,
+  suffix: "",
+  icon: "",
+  filledIcon: "",
 });
 
-function handleInput(e: Event) {
-  const raw = (e.target as HTMLInputElement).value;
+const emit = defineEmits<{
+  "update:modelValue": [value: number | null];
+  change: [value: number | null];
+  input: [value: number | null];
+}>();
 
-  if (props.rupiah) {
-    // Strip semua non-digit sebelum simpan ke model
-    const numeric = raw.replace(/\D/g, "");
-    model.value = numeric === "" ? "" : Number(numeric);
-  } else {
-    model.value = raw;
-  }
+/* =========================================================
+ * COMPUTED
+ * ========================================================= */
+const isEmpty = computed(
+  () =>
+    props.modelValue === null ||
+    props.modelValue === undefined ||
+    props.modelValue === ("" as never),
+);
+
+const hasIcon = computed(() => !!props.icon || !!props.filledIcon);
+const hasSuffix = computed(() => !!props.suffix);
+
+const inputClasses = computed(() => [
+  "appearance-none outline-none w-full h-14 rounded-2xl ring-[1.5px] py-4 gap-2 font-medium transition-all duration-300",
+  "[&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden [-moz-appearance:textfield]",
+  hasIcon.value ? "pl-12" : "pl-4",
+  hasSuffix.value ? "pr-[98px]" : "pr-4",
+  props.disabled ? "bg-desa-background cursor-not-allowed opacity-60" : "",
+  props.errorMessage
+    ? "ring-red-500 focus:ring-red-500"
+    : "ring-desa-background focus:ring-desa-black",
+  isEmpty.value ? "placeholder:text-desa-secondary" : "",
+]);
+
+/* =========================================================
+ * HANDLERS
+ * ========================================================= */
+function handleInput(event: Event) {
+  const raw = (event.target as HTMLInputElement).value;
+  const parsed = raw === "" ? null : Number(raw);
+  emit("update:modelValue", parsed);
+  emit("input", parsed);
+}
+
+function handleChange(event: Event) {
+  const raw = (event.target as HTMLInputElement).value;
+  const parsed = raw === "" ? null : Number(raw);
+  emit("change", parsed);
 }
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="relative">
+  <div class="flex flex-col gap-1 w-full">
+    <label class="relative group w-full">
+      <!-- Input -->
       <input
-        :value="displayValue"
-        :type="rupiah ? 'text' : 'number'"
+        :name="name"
+        type="number"
+        :value="modelValue ?? ''"
         :placeholder="placeholder"
-        :min="rupiah ? undefined : min"
-        :max="rupiah ? undefined : max"
-        :step="rupiah ? undefined : (step ?? 1)"
-        inputmode="numeric"
-        class="peer w-full h-[56px] rounded-2xl pl-[48px] pr-4 border-[1.5px] border-desa-background font-medium leading-5 focus:ring-[1.5px] focus:ring-desa-dark-green focus:outline-none placeholder:leading-5 placeholder:text-desa-secondary placeholder:font-medium transition-all duration-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        :class="{ 'border-red-500': errorMessage }"
+        :disabled="disabled"
+        :min="min"
+        :max="max"
+        :step="step"
+        :class="inputClasses"
         @input="handleInput"
+        @change="handleChange"
       />
-      <img
-        :src="icon"
+
+      <!-- Icon kiri: secondary-green saat kosong, black saat terisi -->
+      <div
+        v-if="hasIcon"
+        class="absolute transform -translate-y-1/2 top-1/2 left-4 flex size-6 shrink-0 pointer-events-none"
         aria-hidden="true"
-        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-0 peer-placeholder-shown:opacity-100 transition-all duration-300"
-      />
-      <img
-        :src="filledIcon"
+      >
+        <img
+          v-if="icon"
+          :src="icon"
+          class="size-6"
+          :class="isEmpty ? 'flex' : 'hidden'"
+          alt=""
+        />
+        <img
+          v-if="filledIcon"
+          :src="filledIcon"
+          class="size-6"
+          :class="isEmpty ? 'hidden' : 'flex'"
+          alt=""
+        />
+      </div>
+
+      <!-- Suffix kanan (misal: "Hari", "m²", dll) -->
+      <div
+        v-if="hasSuffix"
+        class="absolute transform -translate-y-1/2 top-1/2 right-4 flex shrink-0 items-center gap-4 pointer-events-none"
         aria-hidden="true"
-        class="absolute size-6 top-1/2 left-4 -translate-y-1/2 opacity-100 peer-placeholder-shown:opacity-0 transition-all duration-300"
-      />
-    </div>
-    <span
-      v-if="errorMessage"
-      role="alert"
-      class="font-medium text-sm text-desa-red"
-    >
+      >
+        <div class="w-px h-6 border border-desa-background"></div>
+        <span
+          class="font-medium leading-5 transition-setup"
+          :class="isEmpty ? 'text-desa-secondary' : 'text-desa-dark-green'"
+        >
+          {{ suffix }}
+        </span>
+      </div>
+    </label>
+
+    <!-- Error message -->
+    <span v-if="errorMessage" role="alert" class="text-desa-red text-sm block">
       {{ errorMessage }}
     </span>
   </div>
