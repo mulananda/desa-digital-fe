@@ -92,14 +92,10 @@ export async function fetchSocialAssistances(
 export const getSocialAssistanceById = async (
   id: string,
 ): Promise<SocialAssistance> => {
-  const { data } = await axiosInstance.get(`/social-assistance/${id}`);
-
-  /**
-   * Best practice:
-   * - Return hanya data yang dipakai UI
-   * - Jangan return whole axios response
-   */
-  return data.data ?? data;
+  const { data } = await axiosInstance.get<{ data: SocialAssistance }>(
+    `/social-assistance/${id}`,
+  );
+  return data.data;
 };
 
 /**
