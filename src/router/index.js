@@ -23,6 +23,7 @@ import SocialAssistanceRecipients from "@/views/social-assistane-recipient/Socia
 import SocialAssistanceRecipient from "@/views/social-assistane-recipient/SocialAssistanceRecipient.vue";
 import Developments from "@/views/development/Developments.vue";
 import Development from "@/views/development/Development.vue";
+import DevelopmentEdit from "@/views/development/DevelopmentEdit.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -150,6 +151,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             permission: "development-list",
+            sidebarKey: SIDEBAR_KEYS.DEVELOPMENT,
+          },
+        },
+        {
+          path: ROUTE_PATHS.EDIT_DEVELOPMENT,
+          name: ROUTE_NAMES.EDIT_DEVELOPMENT,
+          component: DevelopmentEdit,
+          meta: {
+            requiresAuth: true,
+            permission: "development-edit",
             sidebarKey: SIDEBAR_KEYS.DEVELOPMENT,
           },
         },

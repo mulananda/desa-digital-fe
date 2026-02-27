@@ -15,6 +15,7 @@ export const ROUTE_NAMES = {
   MANAGE_SOCIAL_ASSISTANCE_RECIPIENT: "manage-social-assistance-recipient",
   DEVELOPMENT: "development",
   MANAGE_DEVELOPMENT: "manage-development",
+  EDIT_DEVELOPMENT: "edit-development",
 };
 
 export const ROUTE_PATHS = {
@@ -32,6 +33,7 @@ export const ROUTE_PATHS = {
   ID_SOCIAL_ASSISTANCE_RECIPIENT: "/social-assistance-recipient/:id",
   DEVELOPMENT: "/development",
   ID_DEVELOPMENT: "/development/:id",
+  EDIT_DEVELOPMENT: "/development/edit/:id",
 };
 
 // untuk aktif sidebar

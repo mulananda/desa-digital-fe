@@ -7,8 +7,8 @@ export interface Development {
   id: string;
   thumbnail: string;
   name: string;
-  description: string;
   person_in_charge: string;
+  description: string;
   start_date: string; // tidak optional — wajib ada dari backend
   end_date: string; // tidak optional — wajib ada dari backend
   amount: number;

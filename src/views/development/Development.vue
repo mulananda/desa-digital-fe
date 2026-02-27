@@ -168,10 +168,12 @@ async function handleDelete() {
         confirm-text="Iya Hapus"
         @confirm="handleDelete"
       />
-      <button
-        type="button"
+      <RouterLink
+        :to="{
+          name: ROUTE_NAMES.EDIT_DEVELOPMENT,
+          params: { id: id },
+        }"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
-        @click="handleEdit"
       >
         <span class="font-medium text-white">Ubah Data</span>
         <img
@@ -180,7 +182,7 @@ async function handleDelete() {
           alt=""
           aria-hidden="true"
         />
-      </button>
+      </RouterLink>
     </div>
   </div>
 
@@ -254,13 +256,13 @@ async function handleDelete() {
             >
           </div>
         </div>
-        <div
+        <!-- <div
           class="badge rounded-full p-3 gap-2 flex w-[100px] justify-center shrink-0 bg-desa-dark-green"
         >
           <span class="font-semibold text-xs text-white uppercase"
             >Tersedia</span
           >
-        </div>
+        </div> -->
       </div>
 
       <hr class="border-desa-foreshadow" />
