@@ -102,7 +102,7 @@ const remainingCount = computed(
 const durationDays = computed(() => {
   const dev = development.value;
   if (!dev?.start_date || !dev?.end_date) return 0;
-  return dayjs(dev.end_date).diff(dayjs(dev.start_date), "day");
+  return dayjs(dev.end_date).diff(dayjs(dev.start_date), "day") + 1;
 });
 
 const DEFAULT_THUMBNAIL =
@@ -194,7 +194,7 @@ async function handleDelete() {
     @retry="refetch"
   />
 
-  <div v-else-if="development" class="flex gap-[14px]">
+  <div v-else-if="development" class="flex flex-col gap-[14px]">
     <!-- Informasi Pembangunan -->
     <section class="flex flex-col rounded-3xl p-6 gap-6 bg-white">
       <p class="font-medium leading-5 text-desa-secondary">
@@ -330,29 +330,11 @@ async function handleDelete() {
           </div>
           <div class="flex flex-col gap-1 w-full">
             <p class="font-semibold text-xl leading-[22.5px] text-desa-yellow">
-              {{ dayjs(development.start_date).format("HH:mm") }} WIB
-            </p>
-            <span class="font-medium text-desa-secondary">Jam Pelaksanaan</span>
-          </div>
-        </div>
-        <div class="flex items-center w-full gap-3 justify-end">
-          <div class="flex flex-col gap-1 w-full text-right">
-            <p class="font-semibold text-xl leading-[22.5px] text-desa-yellow">
               {{ durationDays }} Hari
             </p>
             <span class="font-medium text-desa-secondary"
               >Durasi Pengerjaan</span
             >
-          </div>
-          <div
-            class="flex size-[52px] shrink-0 rounded-2xl bg-desa-yellow/10 items-center justify-center"
-          >
-            <img
-              src="@/assets/images/icons/clock-yellow.svg"
-              class="flex size-6 shrink-0"
-              alt=""
-              aria-hidden="true"
-            />
           </div>
         </div>
       </div>

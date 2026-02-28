@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/state/EmptyState.vue";
 import { useDevelopments } from "@/composables/development/useDevelopments";
 import { validateSearchInput } from "@/utils/sanitization";
 import { watchDebounced } from "@vueuse/core";
+import { ROUTE_NAMES } from "@/config/routes.config";
 
 const {
   data: developments,
@@ -69,8 +70,8 @@ watchDebounced(
     <div class="flex items-center justify-between">
       <h1 class="font-semibold text-2xl">Pembangunan Desa</h1>
 
-      <a
-        href="kd-pembangunan-desa-add.html"
+      <RouterLink
+        :to="{ name: ROUTE_NAMES.CREATE_DEVELOPMENT }"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green"
       >
         <img
@@ -79,7 +80,7 @@ watchDebounced(
           alt="icon"
         />
         <p class="font-medium text-white">Add New</p>
-      </a>
+      </RouterLink>
     </div>
 
     <!-- CONTENT -->

@@ -16,6 +16,7 @@ export const ROUTE_NAMES = {
   DEVELOPMENT: "development",
   MANAGE_DEVELOPMENT: "manage-development",
   EDIT_DEVELOPMENT: "edit-development",
+  CREATE_DEVELOPMENT: "create-development",
 };
 
 export const ROUTE_PATHS = {
@@ -34,6 +35,7 @@ export const ROUTE_PATHS = {
   DEVELOPMENT: "/development",
   ID_DEVELOPMENT: "/development/:id",
   EDIT_DEVELOPMENT: "/development/edit/:id",
+  CREATE_DEVELOPMENT: "/development/create",
 };
 
 // untuk aktif sidebar
