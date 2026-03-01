@@ -17,6 +17,8 @@ export const ROUTE_NAMES = {
   MANAGE_DEVELOPMENT: "manage-development",
   EDIT_DEVELOPMENT: "edit-development",
   CREATE_DEVELOPMENT: "create-development",
+  EVENT: "event",
+  MANAGE_EVENT: "manage-event",
 };
 
 export const ROUTE_PATHS = {
@@ -36,6 +38,8 @@ export const ROUTE_PATHS = {
   ID_DEVELOPMENT: "/development/:id",
   EDIT_DEVELOPMENT: "/development/edit/:id",
   CREATE_DEVELOPMENT: "/development/create",
+  EVENT: "/event",
+  ID_EVENT: "/event/:id",
 };
 
 // untuk aktif sidebar
@@ -45,4 +49,5 @@ export const SIDEBAR_KEYS = {
   SOCIAL_ASSISTANCE: "social-assistance",
   SOCIAL_ASSISTANCE_RECIPIENT: "social-assistance-recipient",
   DEVELOPMENT: "development",
+  EVENT: "event",
 };

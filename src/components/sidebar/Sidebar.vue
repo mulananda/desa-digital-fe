@@ -55,6 +55,11 @@ const sidebarItems = [
         path: ROUTE_PATHS.DEVELOPMENT,
         sidebarKey: SIDEBAR_KEYS.DEVELOPMENT,
       },
+      {
+        label: "Event Desa",
+        path: ROUTE_PATHS.EVENT,
+        sidebarKey: SIDEBAR_KEYS.EVENT,
+      },
     ],
   },
 ];
