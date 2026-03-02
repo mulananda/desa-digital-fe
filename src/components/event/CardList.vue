@@ -121,7 +121,7 @@ const handleImageError = (e: Event) => {
         </div>
         <div class="flex flex-col gap-1">
           <p class="font-semibold text-lg leading-5 text-desa-blue">
-            {{ item.event_participants || 0 }} Warga
+            {{ item.event_participants_count ?? 0 }} Warga
           </p>
           <p class="font-medium text-sm text-desa-secondary">
             Total Partisipasi
