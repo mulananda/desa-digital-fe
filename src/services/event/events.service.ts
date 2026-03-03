@@ -1,11 +1,13 @@
 // src/services/events.service.ts
 import { axiosInstance } from "@/api/axios";
+import { parseRupiah } from "@/helpers/format";
 import type { PaginatedResponse } from "@/types/api";
 import { Event } from "@/types/event.type";
-// import type { DevelopmentUpdatePayload } from "@/schemas/development/development.schema";
-// import dayjs from "dayjs";
 import { logger } from "@/utils/helpers";
-// import { parseRupiah } from "@/helpers/format";
+import type {
+  CreateEventPayload,
+  EventUpdatePayload,
+} from "@/schemas/event/event.schema";
 
 export interface EventSearch {
   keyword?: string;
@@ -94,116 +96,63 @@ export const getEventById = async (id: string): Promise<Event> => {
 
 // /**
 //  * CREATE DEVELOPMENT
-//  *
-//  * Konversi:
-//  *   start_date + days_needed → end_date (dikirim ke backend)
-//  *   days_needed              → TIDAK dikirim (tidak ada kolom di DB)
-//  *
 //  * @param payload - Data dari form create (termasuk amount dan thumbnail wajib)
 //  */
-// export const createDevelopment = async (
-//   payload: import("@/schemas/development/development.schema").CreateDevelopmentPayload,
-// ) => {
-//   /*
-//    * Hitung end_date dari start_date + days_needed
-//    *
-//    * Contoh:
-//    *   start_date = "2024-01-01", days_needed = 30
-//    *   end_date   = "2024-01-01" + 29 hari = "2024-01-30" ✅
-//    */
-//   const endDate = dayjs(payload.start_date)
-//     .add(payload.days_needed - 1, "day")
-//     .format("YYYY-MM-DD");
+export const createEvent = async (payload: CreateEventPayload) => {
+  const formData = new FormData();
 
-//   const formData = new FormData();
+  const entries: Record<string, string | Blob> = {
+    thumbnail: payload.thumbnail,
+    name: payload.name,
+    description: payload.description,
+    date: payload.date,
+    time: payload.time,
+    price: String(payload.price),
+    is_active: String(payload.is_active ? 1 : 0),
+  };
 
-//   const entries: Record<string, string | Blob> = {
-//     name: payload.name,
-//     person_in_charge: payload.person_in_charge,
-//     description: payload.description,
-//     start_date: payload.start_date,
-//     end_date: endDate, // ← hasil konversi dari days_needed
-//     amount: String(payload.amount),
-//     status: payload.status,
-//     thumbnail: payload.thumbnail, // ← wajib ada di create
-//     // days_needed ← tidak dikirim, tidak ada kolom di DB
-//   };
+  for (const [key, value] of Object.entries(entries)) {
+    formData.append(key, value);
+  }
 
-//   for (const [key, value] of Object.entries(entries)) {
-//     formData.append(key, value);
-//   }
+  const { data } = await axiosInstance.post<{ data: Event }>(
+    "/event",
+    formData,
+  );
 
-//   const { data } = await axiosInstance.post<{ data: Development }>(
-//     "/development",
-//     formData,
-//   );
+  return data.data;
+};
 
-//   return data.data;
-// };
+/**
+ * UPDATE EVENT DESA
+ * @param id             - ID EVENT DESA
+ * @param payload        - Data dari form (tanpa amount, sudah di-omit dari schema)
+ */
 
-// /**
-//  * UPDATE DEVELOPMENT
-//  *
-//  * Konversi:
-//  *   start_date + days_needed → end_date (dikirim ke backend)
-//  *   days_needed              → TIDAK dikirim (tidak ada kolom di DB)
-//  *   amount                   → diambil dari originalAmount (tidak ada inputan di form edit)
-//  *
-//  * @param id             - ID development
-//  * @param payload        - Data dari form (tanpa amount, sudah di-omit dari schema)
-//  * @param originalAmount - Amount dari data existing (development.value.amount)
-//  */
-// export const updateDevelopment = async (
-//   id: string,
-//   payload: DevelopmentUpdatePayload,
-//   originalAmount: string | number,
-// ) => {
-//   /*
-//    * Hitung end_date dari start_date + days_needed
-//    * subtract(1) karena hari pertama (start_date) sudah terhitung sebagai hari ke-1
-//    *
-//    * Contoh:
-//    *   start_date = "2024-01-01", days_needed = 30
-//    *   end_date   = "2024-01-01" + 29 hari = "2024-01-30" ✅
-//    */
-//   const endDate = dayjs(payload.start_date)
-//     .add(payload.days_needed - 1, "day")
-//     .format("YYYY-MM-DD");
+export const updateEvent = async (id: string, payload: EventUpdatePayload) => {
+  const formData = new FormData();
+  formData.append("_method", "PUT");
 
-//   /*
-//    * Parse amount dari data existing:
-//    * - parseRupiah → hapus separator ribuan, konversi ke number
-//    * - Math.floor  → pastikan bilangan bulat (backend Laravel expect integer)
-//    *
-//    * Contoh: "835.116,89" → 835116.89 → 835116
-//    */
-//   const parsedAmount = Math.floor(parseRupiah(originalAmount) ?? 0);
+  const entries: Record<string, string | Blob> = {
+    name: payload.name,
+    description: payload.description,
+    date: payload.date,
+    time: payload.time,
+    price: String(Math.floor(parseRupiah(payload.price))),
+    is_active: String(payload.is_active ? 1 : 0),
+  };
 
-//   const formData = new FormData();
-//   formData.append("_method", "PUT");
+  if (payload.thumbnail instanceof File) {
+    entries.thumbnail = payload.thumbnail;
+  }
 
-//   const entries: Record<string, string | Blob> = {
-//     name: payload.name,
-//     person_in_charge: payload.person_in_charge,
-//     description: payload.description,
-//     start_date: payload.start_date,
-//     end_date: endDate, // ← hasil konversi dari days_needed
-//     amount: String(parsedAmount), // ← dari data existing, bukan form input
-//     status: payload.status,
-//     // days_needed ← tidak dikirim, tidak ada kolom di DB
-//   };
+  for (const [key, value] of Object.entries(entries)) {
+    formData.append(key, value);
+  }
 
-//   if (payload.thumbnail instanceof File) {
-//     entries.thumbnail = payload.thumbnail;
-//   }
-
-//   for (const [key, value] of Object.entries(entries)) {
-//     formData.append(key, value);
-//   }
-
-//   const { data } = await axiosInstance.post<{ data: unknown }>(
-//     `/development/${id}`,
-//     formData,
-//   );
-//   return data.data;
-// };
+  const { data } = await axiosInstance.post<{ data: unknown }>(
+    `/event/${id}`,
+    formData,
+  );
+  return data.data;
+};

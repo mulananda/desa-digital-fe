@@ -66,7 +66,7 @@ const toggleLabel = computed(() =>
 
     <!-- ✅ Gunakan RouterLink, bukan anchor tag statis -->
     <RouterLink
-      :to="{ name: ROUTE_NAMES.EVENT_EDIT, params: { id } }"
+      :to="{ name: ROUTE_NAMES.EDIT_EVENT, params: { id } }"
       class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-black"
     >
       <p class="font-medium text-white">Ubah Data</p>

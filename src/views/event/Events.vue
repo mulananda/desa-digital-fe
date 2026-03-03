@@ -66,7 +66,7 @@ watchDebounced(
     <div id="Header" class="flex items-center justify-between">
       <h1 class="font-semibold text-2xl">Events Desa</h1>
       <RouterLink
-        :to="{ name: ROUTE_NAMES.EVENT }"
+        :to="{ name: ROUTE_NAMES.CREATE_EVENT }"
         class="flex items-center rounded-2xl py-4 px-6 gap-[10px] bg-desa-dark-green"
       >
         <img

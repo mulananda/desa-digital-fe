@@ -1,3 +1,5 @@
+import { sanitizeSearchParam } from "@/utils/sanitization";
+
 // src/queryKeys/event.keys.ts
 export interface EventListParams {
   keyword?: string;
@@ -6,14 +8,14 @@ export interface EventListParams {
 }
 
 export const eventKeys = {
-  all: ["development"] as const,
+  all: ["event"] as const,
 
   lists: () => [...eventKeys.all, "list"] as const,
 
   list: (params: EventListParams) =>
     [
       ...eventKeys.lists(),
-      params.keyword ?? null,
+      sanitizeSearchParam(params.keyword), // ✅ NEW: Double sanitization
       params.page,
       params.perPage,
     ] as const,
