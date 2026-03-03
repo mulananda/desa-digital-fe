@@ -19,7 +19,7 @@ export const useDeleteDevelopment = () => {
       notificationService.success("Data berhasil dihapus");
 
       // baru refresh list
-      queryClient.invalidateQueries({
+      queryClient.removeQueries({
         queryKey: developmentKeys.lists(),
       });
 
