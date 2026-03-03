@@ -106,11 +106,6 @@ const { mutate: submitUpdate, isPending: isSubmitting } =
 const { scrollToFirstError, focusFirstError } = useFormUX();
 
 /* =========================
- * REFS
- * ========================= */
-const inputFileRef = ref<InstanceType<typeof InputFile> | null>(null);
-
-/* =========================
  * POPULATE FORM dari data existing
  * ========================= */
 watch(
