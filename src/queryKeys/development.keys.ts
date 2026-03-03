@@ -1,3 +1,5 @@
+import { sanitizeSearchParam } from "@/utils/sanitization";
+
 // src/queryKeys/development.keys.ts
 export interface DevelopmentListParams {
   keyword?: string;
@@ -13,7 +15,7 @@ export const developmentKeys = {
   list: (params: DevelopmentListParams) =>
     [
       ...developmentKeys.lists(),
-      params.keyword ?? null,
+      sanitizeSearchParam(params.keyword), // ✅ NEW: Double sanitization
       params.page,
       params.perPage,
     ] as const,
