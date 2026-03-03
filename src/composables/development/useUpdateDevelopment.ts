@@ -34,7 +34,10 @@ export const useUpdateDevelopment = (id: string) => {
       ]);
 
       notificationService.success("Pembangunan desa berhasil diperbarui");
-      await router.push({ name: ROUTE_NAMES.DEVELOPMENT_INDEX });
+      await router.push({
+        name: ROUTE_NAMES.MANAGE_DEVELOPMENT,
+        params: { id: id },
+      });
     },
 
     onError: (error: Error) => {
