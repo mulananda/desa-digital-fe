@@ -27,6 +27,8 @@ import DevelopmentEdit from "@/views/development/DevelopmentEdit.vue";
 import DevelopmentCreate from "@/views/development/DevelopmentCreate.vue";
 import Events from "@/views/event/Events.vue";
 import Event from "@/views/event/Event.vue";
+import EventEdit from "@/views/event/EventEdit.vue";
+import EventCreate from "@/views/event/EventCreate.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -194,6 +196,26 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             permission: "event-list",
+            sidebarKey: SIDEBAR_KEYS.EVENT,
+          },
+        },
+        {
+          path: ROUTE_PATHS.EDIT_EVENT,
+          name: ROUTE_NAMES.EDIT_EVENT,
+          component: EventEdit,
+          meta: {
+            requiresAuth: true,
+            permission: "event-edit",
+            sidebarKey: SIDEBAR_KEYS.EVENT,
+          },
+        },
+        {
+          path: ROUTE_PATHS.CREATE_EVENT,
+          name: ROUTE_NAMES.CREATE_EVENT,
+          component: EventCreate,
+          meta: {
+            requiresAuth: true,
+            permission: "event-create",
             sidebarKey: SIDEBAR_KEYS.EVENT,
           },
         },

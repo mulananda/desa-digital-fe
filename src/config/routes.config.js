@@ -19,6 +19,8 @@ export const ROUTE_NAMES = {
   CREATE_DEVELOPMENT: "create-development",
   EVENT: "event",
   MANAGE_EVENT: "manage-event",
+  EDIT_EVENT: "edit-event",
+  CREATE_EVENT: "create-event",
 };
 
 export const ROUTE_PATHS = {
@@ -40,6 +42,8 @@ export const ROUTE_PATHS = {
   CREATE_DEVELOPMENT: "/development/create",
   EVENT: "/event",
   ID_EVENT: "/event/:id",
+  EDIT_EVENT: "/event/edit/:id",
+  CREATE_EVENT: "/event/create",
 };
 
 // untuk aktif sidebar
