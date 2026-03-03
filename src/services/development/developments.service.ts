@@ -2,7 +2,10 @@
 import { axiosInstance } from "@/api/axios";
 import type { PaginatedResponse } from "@/types/api";
 import type { Development } from "@/types/development.type";
-import type { DevelopmentUpdatePayload } from "@/schemas/development/development.schema";
+import type {
+  CreateDevelopmentPayload,
+  DevelopmentUpdatePayload,
+} from "@/schemas/development/development.schema";
 import dayjs from "dayjs";
 import { logger } from "@/utils/helpers";
 import { parseRupiah } from "@/helpers/format";
@@ -103,9 +106,7 @@ export const deleteDevelopment = async (id: string): Promise<void> => {
  *
  * @param payload - Data dari form create (termasuk amount dan thumbnail wajib)
  */
-export const createDevelopment = async (
-  payload: import("@/schemas/development/development.schema").CreateDevelopmentPayload,
-) => {
+export const createDevelopment = async (payload: CreateDevelopmentPayload) => {
   /*
    * Hitung end_date dari start_date + days_needed
    *
